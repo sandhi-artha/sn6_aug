@@ -2,6 +2,7 @@
 # based on https://www.kaggle.com/sandhiwangiyana/sn6-competition-data
 import os
 import glob
+import json
 
 import numpy as np
 from sklearn.cluster import KMeans
@@ -10,18 +11,11 @@ from rasterio import features as feat
 import geopandas as gpd
 import tensorflow as tf
 
-from model import cfg
-# from lib.raster import get_tile_bounds
-# from lib.proc import to_hwc, normalize
+from cfg import dg_cfg
+from lib.raster import get_tile_bounds
+from lib.proc import to_hwc, normalize
 
-
-dg_cfg = {
-    'base_dir'      : '',
-    'orient'        : 0,
-    'resize'        : 0,
-    'folds'         : 5,
-    'sar_ch'        : [1,4,3]
-}
+print('hi')
 
 
 ### TILE SELECTOR ###
@@ -53,6 +47,7 @@ def get_fp_orient(base_dir, orient):
             fps.append(fp)
 
     print(f'total SAR images with orientation {orient}: {len(fps)}')
+    return fps
 
 def get_fps_folds(fps, folds=4):
     """fps : list
@@ -223,4 +218,19 @@ def create_tfrecord(raster_paths, cfg, base_fn):
 
 
 if __name__=='__main__':
-    print(cfg)
+    # must be in sn6_aug folder
+    # read config dictionary from kaggle script
+    if os.path.isfile('dg_cfg.json'):
+        print('loading new config')
+        with open('dg_cfg.json', 'r') as fp:
+            dg_cfg = json.load(fp)
+    else:
+        print('using saved config')
+    
+    fps = get_fp_orient(dg_cfg['base_dir'], dg_cfg['orient'])
+    idxs_folds = get_fps_folds(fps, dg_cfg['folds'])
+
+    for i, idxs_fold in enumerate(idxs_folds):
+        print(f'creating tfrecords for fold {i}')
+        fps_fold = [fps[idx[0]] for idx in idxs_fold]
+        create_tfrecord(fps_fold, dg_cfg, f'fold{i}')
