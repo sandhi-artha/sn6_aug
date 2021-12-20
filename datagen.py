@@ -10,8 +10,9 @@ from rasterio import features as feat
 import geopandas as gpd
 import tensorflow as tf
 
-from lib.raster import get_tile_bounds
-from lib.proc import to_hwc, normalize
+from model import cfg
+# from lib.raster import get_tile_bounds
+# from lib.proc import to_hwc, normalize
 
 
 dg_cfg = {
@@ -222,4 +223,4 @@ def create_tfrecord(raster_paths, cfg, base_fn):
 
 
 if __name__=='__main__':
-    pass
+    print(cfg)
