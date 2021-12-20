@@ -166,7 +166,7 @@ def get_training_dataset(files, augment=False, shuffle=True, load_fn=False):
     dataset = load_dataset(files, load_fn=load_fn)
 #     if augment: dataset = dataset.map()
     dataset = dataset.repeat()
-    if shuffle: dataset = dataset.shuffle(2000)  # 2000
+    if shuffle: dataset = dataset.shuffle(tr_cfg['SHUFFLE_BUFFER'])  # 2000
     dataset = dataset.batch(tr_cfg['BATCH_SIZE'])
     dataset = dataset.prefetch(AUTOTUNE)
     

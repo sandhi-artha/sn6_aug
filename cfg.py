@@ -23,6 +23,7 @@ tr_cfg = {
     'VAL_SPLITS'    : 'val',
     'IS_FP32'       : 0,       # 1 if train or validating on fp32
     'SAR_CH'        : [1,4,3], # [0,3,2],      # HH, VV, VH. 0 = all channel
+    'SHUFFLE_BUFFER': 500,     # ideally same as dataset size
     
     # training cfg
     'DEVICE'        : 'tpu',
