@@ -1,5 +1,6 @@
 dg_cfg = {
     'base_dir'      : '../dataset/spacenet6-challenge/AOI_11_Rotterdam',
+    'out_dir'       : '../',
     'orient'        : 0,
     'resize'        : None,
     'folds'         : 4,

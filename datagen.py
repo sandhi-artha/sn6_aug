@@ -15,7 +15,6 @@ from cfg import dg_cfg
 from lib.raster import get_tile_bounds
 from lib.proc import to_hwc, normalize
 
-print('hi')
 
 
 ### TILE SELECTOR ###
@@ -230,7 +229,12 @@ if __name__=='__main__':
     fps = get_fp_orient(dg_cfg['base_dir'], dg_cfg['orient'])
     idxs_folds = get_fps_folds(fps, dg_cfg['folds'])
 
+    if not os.path.isdir(dg_cfg['out_dir']):
+        os.makedirs(dg_cfg['out_dir'])
+
     for i, idxs_fold in enumerate(idxs_folds):
         print(f'creating tfrecords for fold {i}')
         fps_fold = [fps[idx[0]] for idx in idxs_fold]
-        create_tfrecord(fps_fold, dg_cfg, f'fold{i}')
+        out_path = os.path.join(dg_cfg['out_dir'], f'fold{i}')
+        
+        create_tfrecord(fps_fold, dg_cfg, out_path)
