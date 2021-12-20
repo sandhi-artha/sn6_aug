@@ -220,7 +220,7 @@ if __name__=='__main__':
     # must be in sn6_aug folder
     # read config dictionary from kaggle script
     if os.path.isfile('dg_cfg.json'):
-        print('loading new config')
+        print('using Kaggle config')
         with open('dg_cfg.json', 'r') as fp:
             dg_cfg = json.load(fp)
     else:
