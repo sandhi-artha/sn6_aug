@@ -8,7 +8,7 @@ import tensorflow as tf
 import wandb
 from wandb.keras import WandbCallback
 
-from aug import data_augment
+# from aug import data_augment
 
 
 ### KEEP TRACK - VOLATILE CHANGES
