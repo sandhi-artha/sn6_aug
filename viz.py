@@ -9,3 +9,6 @@ def show_example(img, mask):
         mask = np.squeeze(mask, axis=-1)
     ax[1].imshow(mask, cmap='gray')
     plt.show()
+
+a = np.array([1,2,3])
+print(a)

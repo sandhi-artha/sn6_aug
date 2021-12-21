@@ -8,7 +8,6 @@ import numpy as np
 import tensorflow as tf
 import tensorflow_addons as tfa
 from tensorflow.keras import backend as K
-from functools import partial # used when parsing tfrecords
 import matplotlib.pyplot as plt
 import seaborn as sns
 
@@ -56,7 +55,6 @@ def seed_everything(seed):
     os.environ['PYTHONHASHSEED'] = str(seed)
     tf.random.set_seed(seed)
 
-seed_everything(tr_cfg['SEED'])
 
 
 
