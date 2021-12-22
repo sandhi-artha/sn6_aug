@@ -16,6 +16,7 @@ def show_example(img, mask):
     plt.show()
 
 def plot_metrics(history):
+    sns.set(style='whitegrid')
     metric_list = [m for m in list(history.keys()) if m is not 'lr']
     size = len(metric_list)//2  # adjust vertical space to fit all metrics
     fig, axes = plt.subplots(size, 1, sharex='col', figsize=(20, size * 4))
@@ -41,6 +42,7 @@ def plot_metrics(history):
     plt.xlabel('Epochs', fontsize=16)
     sns.despine()
     plt.show()
+    sns.set_theme()
     
     # print model performance
     bm_idx = np.argmin(history['val_loss'])

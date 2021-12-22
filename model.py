@@ -51,12 +51,15 @@ def focal_tversky_loss(y_true, y_pred, gamma=0.75):
     return K.pow((1 - tv), gamma)
 
 LF_dict = {
-    'bce'       : tf.keras.losses.BinaryCrossentropy(from_logits=True),
-    # 'jacc'      : jaccard_distance
-    'focal'     : tfa.losses.SigmoidFocalCrossEntropy(),
-    'dice'      : dice_coef_loss,
-    'tversky'   : tversky_loss,
-    'giou'      : tfa.losses.GIoULoss(),
+    'bce'           : tf.keras.losses.BinaryCrossentropy(from_logits=True),
+    'focal'         : tfa.losses.SigmoidFocalCrossEntropy(),  # loss very low, but iou and f1 don't improve
+    'dice'          : dice_coef_loss,
+    'tversky'       : tversky_loss,
+    # 'giou'          : tfa.losses.GIoULoss(),  # error when training
+    'jacc'          : sm.losses.JaccardLoss(),  # iou loss
+    'dice_sm'       : sm.losses.DiceLoss(),
+    'focal_sm'      : sm.losses.BinaryFocalLoss(),
+    'focal_tversky' : focal_tversky_loss
 }
 
 ### MODEL ###
