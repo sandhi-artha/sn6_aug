@@ -7,6 +7,17 @@ import tensorflow as tf
 # from tensorflow.keras import backend as K
 # import math
 
+if os.path.isfile('ag_cfg.json'):
+    print('aug using Kaggle config')
+    with open('ag_cfg.json', 'r') as fp:
+        ag_cfg = json.load(fp)
+else:
+    from cfg import ag_cfg
+    print('aug using saved config')
+
+print(ag_cfg)
+
+
 
 def resize_example(image, label, fn=None, ext_val=False):
     """image must be type float"""
@@ -91,17 +102,5 @@ def data_augment(image, label):
 
 
 
-if __name__ =='__main__':
-    # bad practice, somehow python reads
-    if os.path.isfile('ag_cfg.json'):
-        print('aug using Kaggle config')
-        with open('ag_cfg.json', 'r') as fp:
-            ag_cfg = json.load(fp)
-    else:
-        from cfg import tr_cfg
-        from cfg import ag_cfg
-        print('aug using saved config')
-
-    print(ag_cfg)
 
     
