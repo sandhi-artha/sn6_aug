@@ -93,10 +93,8 @@ def data_augment(image, label):
 
 if __name__ =='__main__':
     # bad practice, somehow python reads
-    if os.path.isfile('tr_cfg.json'):
+    if os.path.isfile('ag_cfg.json'):
         print('aug using Kaggle config')
-        with open('tr_cfg.json', 'r') as fp:
-            tr_cfg = json.load(fp)
         with open('ag_cfg.json', 'r') as fp:
             ag_cfg = json.load(fp)
     else:
