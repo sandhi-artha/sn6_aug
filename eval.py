@@ -75,17 +75,23 @@ def display_img(display_list):
     
     for i in range(len(display_list)):
         plt.subplot(1, len(display_list), i+1)
-        plt.title(title[i])
+        plt.title(title[i], fontsize=24)
         plt.imshow(tf.keras.preprocessing.image.array_to_img(display_list[i]))
         plt.axis('off')
 
+    plt.tight_layout()
     plt.show()
 
-def show_predictions(model, dataset, num=1, n_show=4, num_pass=0):
-    """Take n images (according to BATCH_SIZE), predict and display results
+def show_predictions(model, ds_fn, n_show=4, shuffle=False, num_pass=0):
+    """ create new dataset, shuffle(250), batch(n_show), predict and display with fn
     """
-    for img,mask in dataset.skip(num_pass).take(num):
+    dataset = load_dataset(ds_fn, load_fn=1)
+    if shuffle: dataset = dataset.shuffle(250)
+    dataset = dataset.batch(n_show)
+    
+    for img,mask,fn in dataset.skip(num_pass).take(1):
         pred_mask = model.predict(img)
         pred_mask = create_binary_mask(pred_mask)
         for i in range(n_show):
+            print(fn[i].numpy().decode())
             display_img([img[i], mask[i], pred_mask[i]])

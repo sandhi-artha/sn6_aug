@@ -46,18 +46,20 @@ def seed_everything(seed):
 
 
 ### AUGMENTATIONS
-def resize_example(image, label, ext_val):
+def resize_example(image, label, fn, ext_val):
     """image must be type float"""
     if ext_val:
+        # if ext validation (from SLC) it takes different res input
         image = tf.reshape(image, [640, 640, 3])
         label = tf.reshape(label, [640, 640, 1])
     else:
+        # reshape here is needed bcz from parse_tensor, image and label don't have shape
         image = tf.reshape(image, [tr_cfg['IMAGE_DIM'], tr_cfg['IMAGE_DIM'], IMAGE_CH])
         label = tf.reshape(label, [tr_cfg['IMAGE_DIM'], tr_cfg['IMAGE_DIM'], 1])
 
     image = tf.image.resize(image, [tr_cfg['IMAGE_RS'], tr_cfg['IMAGE_RS']])
     label = tf.image.resize(label, [tr_cfg['IMAGE_RS'], tr_cfg['IMAGE_RS']])
-    return image, label
+    return image, label, fn
 
 def random_crop(image, label):
     """image and mask must be same dtype"""
@@ -109,20 +111,19 @@ TFREC_FORMAT = {
     'fn': tf.io.FixedLenFeature([], tf.string)
 }
 
-def read_tfrecord(feature, load_fn):
+def read_tfrecord(feature):
     features = tf.io.parse_single_example(feature, TFREC_FORMAT)
-
+    fn = features["fn"]
     image = tf.io.parse_tensor(features["image"], tf.uint8)
     image = tf.cast(image, tf.float32)/255.0
     label = tf.io.parse_tensor(features["label"], tf.bool)
     label = tf.cast(label, tf.float32)
+    
+    return image, label, fn
 
-    if load_fn:
-        fn = features["fn"]
-        return image, label, fn
-    else:
-        return image, label
-
+def remove_fn(img, label, fn):
+    """removes fn as arg to not raise error when training"""
+    return img, label
 
 def load_dataset(filenames, load_fn=False, ext_val=False, ordered=False):
     """
@@ -134,17 +135,18 @@ def load_dataset(filenames, load_fn=False, ext_val=False, ordered=False):
         ignore_order.experimental_deterministic = False
     dataset = tf.data.TFRecordDataset(filenames, num_parallel_reads=AUTOTUNE)
     dataset = dataset.with_options(ignore_order)
-    dataset = dataset.map(lambda x: read_tfrecord(x, load_fn),
+    dataset = dataset.map(read_tfrecord, num_parallel_calls=AUTOTUNE)
+    dataset = dataset.map(lambda img,label,fn: resize_example(img,label,fn,ext_val),
                           num_parallel_calls=AUTOTUNE)
-    dataset = dataset.map(lambda img,label: resize_example(img, label, ext_val),
-                          num_parallel_calls=AUTOTUNE)
+    if not load_fn:
+        dataset = dataset.map(remove_fn, num_parallel_calls=AUTOTUNE)
     return dataset
 
 
     
 
-def get_training_dataset(files, augment=False, shuffle=True, load_fn=False):
-    dataset = load_dataset(files, load_fn=load_fn)
+def get_training_dataset(files, augment=False, shuffle=True):
+    dataset = load_dataset(files)
     if augment: dataset = dataset.map(data_augment)
     dataset = dataset.repeat()
     if shuffle: dataset = dataset.shuffle(tr_cfg['SHUFFLE_BUFFER'])  # 2000
@@ -153,8 +155,8 @@ def get_training_dataset(files, augment=False, shuffle=True, load_fn=False):
     
     return dataset
 
-def get_validation_dataset(files, load_fn=False):
-    dataset = load_dataset(files, load_fn=load_fn, ext_val=IS_EXT_VAL)
+def get_validation_dataset(files):
+    dataset = load_dataset(files, ext_val=IS_EXT_VAL)
     dataset = dataset.cache()
     dataset = dataset.batch(tr_cfg['BATCH_SIZE'])
     dataset = dataset.prefetch(AUTOTUNE)
