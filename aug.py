@@ -18,6 +18,16 @@ else:
 print(ag_cfg)
 
 
+### LOAD CONFIG ###
+if os.path.isfile('tr_cfg.json'):
+    print('using Kaggle config')
+    with open('tr_cfg.json', 'r') as fp:
+        tr_cfg = json.load(fp)
+else:
+    from cfg import tr_cfg
+    print('using saved config')
+
+
 
 def resize_example(image, label, fn=None, ext_val=False):
     """image must be type float"""

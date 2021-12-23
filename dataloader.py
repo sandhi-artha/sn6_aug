@@ -8,22 +8,12 @@ import tensorflow as tf
 import wandb
 from wandb.keras import WandbCallback
 
-from aug import data_augment, reduce_res
 
 
 ### KEEP TRACK - VOLATILE CHANGES
 print(tf.__version__)
 print(f'Wandb Version: {wandb.__version__}')
 
-
-### LOAD CONFIG ###
-if os.path.isfile('tr_cfg.json'):
-    print('using Kaggle config')
-    with open('tr_cfg.json', 'r') as fp:
-        tr_cfg = json.load(fp)
-else:
-    from cfg import tr_cfg
-    print('using saved config')
 
 
 
