@@ -85,9 +85,7 @@ def display_img(display_list):
 def show_predictions(model, ds_fn, n_show=4, shuffle=False, num_pass=0):
     """ create new dataset, shuffle(250), batch(n_show), predict and display with fn
     """
-    dataset = load_dataset(ds_fn, load_fn=1)
-    if shuffle: dataset = dataset.shuffle(250)
-    dataset = dataset.batch(n_show)
+    dataset = get_preview_dataset(ds_fn, n_show, shuffle)
     
     for img,mask,fn in dataset.skip(num_pass).take(1):
         pred_mask = model.predict(img)

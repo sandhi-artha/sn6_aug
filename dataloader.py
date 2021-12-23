@@ -38,42 +38,12 @@ IS_EXT_VAL = 1 if tr_cfg['VAL_PATH'] == 'base-val-8' else 0
 IMAGE_CH = len(tr_cfg['SAR_CH'])
 
 
+
 def seed_everything(seed):
 #     random.seed(seed)
     np.random.seed(seed)
     os.environ['PYTHONHASHSEED'] = str(seed)
     tf.random.set_seed(seed)
-
-
-### AUGMENTATIONS
-def resize_example(image, label, fn, ext_val):
-    """image must be type float"""
-    if ext_val:
-        # if ext validation (from SLC) it takes different res input
-        image = tf.reshape(image, [640, 640, 3])
-        label = tf.reshape(label, [640, 640, 1])
-    else:
-        # reshape here is needed bcz from parse_tensor, image and label don't have shape
-        image = tf.reshape(image, [tr_cfg['IMAGE_DIM'], tr_cfg['IMAGE_DIM'], IMAGE_CH])
-        label = tf.reshape(label, [tr_cfg['IMAGE_DIM'], tr_cfg['IMAGE_DIM'], 1])
-
-    image = tf.image.resize(image, [tr_cfg['IMAGE_RS'], tr_cfg['IMAGE_RS']])
-    label = tf.image.resize(label, [tr_cfg['IMAGE_RS'], tr_cfg['IMAGE_RS']])
-    return image, label, fn
-
-def random_crop(image, label):
-    """image and mask must be same dtype"""
-    # make [900,900,4]
-    size = [tr_cfg['IMAGE_RS'], tr_cfg['IMAGE_RS']]
-    stacked_image = tf.concat([image, label], axis=-1)
-    cropped_image = tf.image.random_crop(
-        stacked_image, size=[*size, 4])
-    
-    image_crop = tf.reshape(image, [tr_cfg['IMAGE_RS'], tr_cfg['IMAGE_RS'], IMAGE_CH])
-    label_crop = tf.reshape(label, [tr_cfg['IMAGE_RS'], tr_cfg['IMAGE_RS'], 1])
-    # for label, if you want [w,h,1] shape, use -1:
-    return cropped_image[:,:,:3], cropped_image[:,:,-1:]
-
 
 
 
@@ -125,10 +95,13 @@ def remove_fn(img, label, fn):
     """removes fn as arg to not raise error when training"""
     return img, label
 
-def load_dataset(filenames, load_fn=False, ext_val=False, ordered=False):
+def load_dataset(filenames, load_fn=False, ordered=False):
     """
     takes list of .tfrec files, read using TFRecordDataset,
-    parse and decode using read_tfrecord func, returns image&label/image_name(test)
+    parse and decode using read_tfrecord func,
+    returns : image, label
+        both without shape and with IMAGE_DIM resolution
+    if load_fn is True, returns: image, label, fn
     """
     ignore_order = tf.data.Options()
     if not ordered:
@@ -136,8 +109,6 @@ def load_dataset(filenames, load_fn=False, ext_val=False, ordered=False):
     dataset = tf.data.TFRecordDataset(filenames, num_parallel_reads=AUTOTUNE)
     dataset = dataset.with_options(ignore_order)
     dataset = dataset.map(read_tfrecord, num_parallel_calls=AUTOTUNE)
-    dataset = dataset.map(lambda img,label,fn: resize_example(img,label,fn,ext_val),
-                          num_parallel_calls=AUTOTUNE)
     if not load_fn:
         dataset = dataset.map(remove_fn, num_parallel_calls=AUTOTUNE)
     return dataset
@@ -146,7 +117,18 @@ def load_dataset(filenames, load_fn=False, ext_val=False, ordered=False):
     
 
 def get_training_dataset(files, augment=False, shuffle=True):
-    dataset = load_dataset(files)
+    """
+    train:
+        - load_fn = 0
+        - ext_val = 0
+        - resize or crop
+
+    repeat for several epochs
+    augment only on train_ds
+    shuffle before batch
+    """
+    dataset = load_dataset(files)  # [900,900]
+    dataset = dataset.map(reduce_res, num_parallel_calls=AUTOTUNE)  # [640,640]
     if augment: dataset = dataset.map(data_augment)
     dataset = dataset.repeat()
     if shuffle: dataset = dataset.shuffle(tr_cfg['SHUFFLE_BUFFER'])  # 2000
@@ -156,14 +138,34 @@ def get_training_dataset(files, augment=False, shuffle=True):
     return dataset
 
 def get_validation_dataset(files):
-    dataset = load_dataset(files, ext_val=IS_EXT_VAL)
+    """
+    val:
+        - load_fn = 0
+        - ext_val = maybe
+        - resize only
+    """
+    dataset = load_dataset(files)
+    dataset = dataset.map(lambda img,label: resize_example(img,label,None,IS_EXT_VAL),
+                          num_parallel_calls=AUTOTUNE)
     dataset = dataset.cache()
     dataset = dataset.batch(tr_cfg['BATCH_SIZE'])
     dataset = dataset.prefetch(AUTOTUNE)
     
     return dataset
 
-
+def get_preview_dataset(files, n_show, shuffle=False):
+    """
+    prev:
+        - load_fn = maybe
+        - ext_val = maybe
+        - resize only
+    """
+    dataset = load_dataset(files, load_fn=1)
+    dataset = dataset.map(lambda img,label,fn: resize_example(img,label,fn,IS_EXT_VAL),
+                          num_parallel_calls=AUTOTUNE)
+    if shuffle: dataset = dataset.shuffle(250)
+    dataset = dataset.batch(n_show)
+    return dataset
 
 
 
