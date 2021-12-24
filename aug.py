@@ -43,11 +43,11 @@ def reduce_res(image, label):
     """either random crop or resize
     if using both, when p_reduce > .5 do resize, if lower do crop"""
 
-    if ag_cfg['IS_RESIZE'] and not ag_cfg['IS_CROP']: # 100% resize
+    if tr_cfg['IS_RESIZE'] and not tr_cfg['IS_CROP']: # 100% resize
         image, label = resize_example(image, label)
-    if ag_cfg['IS_CROP'] and not ag_cfg['IS_RESIZE']:   # 100% random crop
+    if tr_cfg['IS_CROP'] and not tr_cfg['IS_RESIZE']:   # 100% random crop
         image, label = random_crop(image, label)
-    if ag_cfg['IS_RESIZE'] and ag_cfg['IS_CROP']:
+    if tr_cfg['IS_RESIZE'] and tr_cfg['IS_CROP']:
         # 50-50 chance of resize and random crop
         p_reduce = tf.random.uniform([], 0, 1.0, dtype=tf.float32)
         if p_reduce > .5:
@@ -55,7 +55,7 @@ def reduce_res(image, label):
         else:
             image, label = random_crop(image, label)
 
-    if not ag_cfg['IS_RESIZE'] and not ag_cfg['IS_CROP']:
+    if not tr_cfg['IS_RESIZE'] and not tr_cfg['IS_CROP']:
         raise ValueError('must choose RESIZE or CROP or both')
 
     return image, label
@@ -64,20 +64,20 @@ def reduce_res(image, label):
 def data_augment(image, label):
     
     # Flips
-    if ag_cfg['IS_VFLIP']:
+    if tr_cfg['IS_VFLIP']:
         print('vflip')
         p_vflip = tf.random.uniform([], 0, 1.0, dtype=tf.float32)
         if p_vflip >= .5:
             image = tf.image.random_flip_up_down(image)
     
-    if ag_cfg['IS_HFLIP']:
+    if tr_cfg['IS_HFLIP']:
         print('hflip')
         p_hflip = tf.random.uniform([], 0, 1.0, dtype=tf.float32)
         if p_hflip >= .5:
             image = tf.image.random_flip_left_right(image)
         
     # Rotates
-    if ag_cfg['IS_ROT']:
+    if tr_cfg['IS_ROT']:
         print('rotates')
         p_rotate = tf.random.uniform([], 0, 1.0, dtype=tf.float32)
         if p_rotate > .75:
