@@ -37,15 +37,8 @@ tr_cfg = {
     'IS_3_FOLD'     : 0,   # do same training 3x to get an average value
     'IS_CB_ES'      : 0,   # early stopping
     'IS_CB_LRS'     : 0,   # learning rate scheduler, if false uses lr_ramp
-}
-
-
-# inferred config
-tr_cfg['BATCH_SIZE'] = 2
-tr_cfg['SHUFFLE_BUFFER'] = 50
-
-# augmentation 
-ag_cfg = {
+    
+    # augmentations
     'IS_RESIZE'     : 1,       
     'IS_CROP'       : 0,
     'IS_HFLIP'      : 0,
@@ -53,6 +46,12 @@ ag_cfg = {
     'IS_ROT'        : 0,
     'IS_CH_SWAP'    : 0,
 }
+
+
+# inferred config
+tr_cfg['BATCH_SIZE'] = 2
+tr_cfg['SHUFFLE_BUFFER'] = 50
+
 
 """
 %cd sn6_aug

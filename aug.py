@@ -1,31 +1,10 @@
 # use bayesian
 # only to import modules to train.py
 # TODO: implement augmentations for both image and mask (use concat)
-import os
-import json
 import tensorflow as tf
 # from tensorflow.keras import backend as K
 # import math
 
-if os.path.isfile('ag_cfg.json'):
-    print('aug using Kaggle config')
-    with open('ag_cfg.json', 'r') as fp:
-        ag_cfg = json.load(fp)
-else:
-    from cfg import ag_cfg
-    print('aug using saved config')
-
-print(ag_cfg)
-
-
-### LOAD CONFIG ###
-if os.path.isfile('tr_cfg.json'):
-    print('using Kaggle config')
-    with open('tr_cfg.json', 'r') as fp:
-        tr_cfg = json.load(fp)
-else:
-    from cfg import tr_cfg
-    print('using saved config')
 
 
 
