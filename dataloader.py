@@ -34,7 +34,7 @@ AUTOTUNE = tf.data.experimental.AUTOTUNE
 
 # convert string and other types to bool for faster change
 IS_EXT_VAL = 1 if tr_cfg['VAL_PATH'] == 'base-val-8' else 0
-IS_ORIENT0 = 0 if tr_cfg['ORIENT'] == 1 else 1  # ORIENT 0 or 2, then it's TRUE
+if tr_cfg['ORIENT'] == 1: tr_cfg['IS_ROT_ORIENT0'] = 0  # make sure not to rotate when loading orient1
 IMAGE_CH = len(tr_cfg['SAR_CH'])
 
 
@@ -56,19 +56,22 @@ def count_data_items(filenames):
     return np.sum(n)
 
 def get_filenames(split, ds_path, sub_path='', out=False):
+    """
+    fold is complete with orient if 'ORIENT'==2. ex: fold0_o1
+    """
     if tr_cfg["ORIENT"] == 2:
-        orient = 'o'
+        orient = ''
     else:
-        orient = f'o{tr_cfg["ORIENT"]}'
+        orient = f'_o{tr_cfg["ORIENT"]}'
     if isinstance(split, list):
         fns = []
         for fold in split:
-            fol_path = os.path.join(ds_path, sub_path, f'{fold}_{orient}*.tfrec')
+            fol_path = os.path.join(ds_path, sub_path, f'{fold}{orient}*.tfrec')
             fold_fns  = tf.io.gfile.glob(fol_path)
             for fn in fold_fns:
                 fns.append(fn)
     else:
-        fol_path = os.path.join(ds_path, sub_path, f'{split}_{orient}*.tfrec')
+        fol_path = os.path.join(ds_path, sub_path, f'{split}{orient}*.tfrec')
         fns  = tf.io.gfile.glob(fol_path)
     
     num_img = count_data_items(fns)
@@ -98,9 +101,13 @@ def read_tfrecord(feature):
 
     return image, label, orient, fn
 
-def remove_fn(img, label, orient, fn):
-    """removes fn as arg to not raise error when training"""
-    return img, label, orient
+def remove_args(img, label, orient, fn):
+    """removes fn as arg to not raise error when training
+    also removes orient based on dataset scope variable"""
+    if tr_cfg['IS_ROT_ORIENT0']:
+        return img, label, orient
+    else:
+        return img, label
 
 def load_dataset(filenames, load_fn=False, ordered=False):
     """
@@ -117,13 +124,14 @@ def load_dataset(filenames, load_fn=False, ordered=False):
     dataset = dataset.with_options(ignore_order)
     dataset = dataset.map(read_tfrecord, num_parallel_calls=AUTOTUNE)
     if not load_fn:
-        dataset = dataset.map(remove_fn, num_parallel_calls=AUTOTUNE)
+        dataset = dataset.map(remove_args, num_parallel_calls=AUTOTUNE)
     return dataset
 
-def orient_proc(image, label, orient):
+def orient_proc(image, label, orient, fn=None):
     """check orient, if it's 0 then rotate image by 180
         can't just use if not orient, unless do orient.numpy()
             but potentially hurt performance
+        TODO: incorporate IS_EXT_VAL
     """
     orient = tf.cast(orient, dtype=tf.bool)
     label = tf.expand_dims(label, axis=-1)   # to rotate image, must be 3d
@@ -137,7 +145,10 @@ def orient_proc(image, label, orient):
         lambda: label                        # cond if false
     )
 
-    return image, label
+    if fn is None:
+        return image, label
+    else:
+        return image, label, fn
     
 
 def get_training_dataset(files, augment=False, shuffle=True):
@@ -152,7 +163,7 @@ def get_training_dataset(files, augment=False, shuffle=True):
     shuffle before batch
     """
     dataset = load_dataset(files)  # [900,900]
-    if IS_ORIENT0:
+    if tr_cfg['IS_ROT_ORIENT0']:
         dataset = dataset.map(orient_proc, num_parallel_calls=AUTOTUNE)     # rotate 180 orient0
     dataset = dataset.map(reduce_res, num_parallel_calls=AUTOTUNE)  # [640,640]
     if augment: dataset = dataset.map(data_augment)
@@ -171,7 +182,7 @@ def get_validation_dataset(files):
         - resize only
     """
     dataset = load_dataset(files)
-    if IS_ORIENT0:
+    if tr_cfg['IS_ROT_ORIENT0']:
         dataset = dataset.map(orient_proc, num_parallel_calls=AUTOTUNE)     # rotate 180 orient0
     dataset = dataset.map(lambda img,label: resize_example(img,label,None,IS_EXT_VAL),
                           num_parallel_calls=AUTOTUNE)
@@ -181,6 +192,10 @@ def get_validation_dataset(files):
     
     return dataset
 
+def remove_orient(img, label, orient, fn):
+    return img, label, fn
+
+
 def get_preview_dataset(files, n_show, shuffle=False):
     """
     prev:
@@ -189,6 +204,10 @@ def get_preview_dataset(files, n_show, shuffle=False):
         - resize only
     """
     dataset = load_dataset(files, load_fn=1)
+    if tr_cfg['IS_ROT_ORIENT0']:
+        dataset = dataset.map(orient_proc, num_parallel_calls=AUTOTUNE)     # rotate 180 orient0
+    else:
+        dataset = dataset.map(remove_orient, num_parallel_calls=AUTOTUNE)
     dataset = dataset.map(lambda img,label,fn: resize_example(img,label,fn,IS_EXT_VAL),
                           num_parallel_calls=AUTOTUNE)
     if shuffle: dataset = dataset.shuffle(250)

@@ -19,7 +19,7 @@ tr_cfg = {
     'IMAGE_RS'      : 320,
     'TRAIN_PATH'    : 'sn6-900-uint8-o1', #'sn6-900-uint8',  # kaggle ds name
     'TRAIN_SPLITS'  : ['fold0', 'fold1', 'fold2', 'fold3'],
-    'ORIENT'        : 0,            # if 2, use both orient 0 and 1
+    'ORIENT'        : 2,            # if 2, load both orient 0 (rot) and 1 dataset
     'VAL_PATH'      : None, #'base-val-8',  # if None, don't validate
     'VAL_SPLITS'    : 'val',  # will only be considered if val path exist and IS_CV=0
     'IS_FP32'       : 0,       # 1 if train or validating on fp32
@@ -46,11 +46,14 @@ tr_cfg = {
     'IS_VFLIP'      : 0,
     'IS_ROT'        : 0,
     'IS_CH_SWAP'    : 0,
+
+    # orient
+    'IS_ROT_ORIENT0': 1,    # rot180 for orient0
 }
 
 
 # inferred config
-tr_cfg['BATCH_SIZE'] = 2
+tr_cfg['BATCH_SIZE'] = 8
 tr_cfg['SHUFFLE_BUFFER'] = 50
 
 
