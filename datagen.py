@@ -13,7 +13,7 @@ import tensorflow as tf
 
 from cfg import dg_cfg
 from lib.raster import get_tile_bounds
-from lib.proc import to_hwc, normalize
+from lib.proc import to_hwc, normalize, standardize
 
 
 
@@ -94,7 +94,7 @@ def get_image(raster_path, ch=None):
     raster = rs.open(raster_path)
     image = raster.read(indexes=ch, masked=True)
     image = to_hwc(image)
-    image = normalize(image)
+    # image = normalize(image)
     raster.close()  # close the opened dataset
     return image
 
@@ -197,6 +197,8 @@ def create_tfrecord(raster_paths, cfg, base_fn):
                 idx = i*size+j  # ith tfrec * num_img per tfrec as the start of this iteration
                 image = get_image(raster_paths[idx], cfg['channel'])
                 image_serial = serialize_image(image, cfg['out_precision'])
+                image_serial_norm = serialize_image(normalize(image), cfg['out_precision'])
+                image_serial_std = serialize_image(standardize(image), cfg['out_precision'])
 
                 label = get_label(raster_paths[idx])
                 label_serial = serialize_label(label)
@@ -205,6 +207,8 @@ def create_tfrecord(raster_paths, cfg, base_fn):
 
                 feature = {
                     'image': _bytes_feature(image_serial.numpy()),
+                    'image_norm': _bytes_feature(image_serial_norm.numpy()),
+                    'image_std': _bytes_feature(image_serial_std.numpy()),
                     'label': _bytes_feature(label_serial.numpy()),
                     'fn' : _bytes_feature(tf.compat.as_bytes(fn))
                 }
