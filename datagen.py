@@ -174,7 +174,11 @@ def _bytes_feature(value):
         value = value.numpy() # BytesList won't unpack a string from an EagerTensor. intended for the image data
     return tf.train.Feature(bytes_list=tf.train.BytesList(value=[value]))
 
-def create_tfrecord(raster_paths, cfg, base_fn):
+def _int64_feature(value):
+    """Returns an int64_list from a bool / enum / int / uint."""
+    return tf.train.Feature(int64_list=tf.train.Int64List(value=value))
+
+def create_tfrecord(raster_paths, cfg, base_fn, orient):
     """
     100 images per tfrecord
     image in float32 serialized
@@ -206,15 +210,28 @@ def create_tfrecord(raster_paths, cfg, base_fn):
                 feature = {
                     'image': _bytes_feature(image_serial.numpy()),
                     'label': _bytes_feature(label_serial.numpy()),
-                    'fn' : _bytes_feature(tf.compat.as_bytes(fn))
+                    'fn' : _bytes_feature(tf.compat.as_bytes(fn)),
+                    'orient' : _int64_feature([orient])
                 }
 
                 # write tfrecords
                 example = tf.train.Example(features=tf.train.Features(feature=feature))
                 writer.write(example.SerializeToString())
 
+def datagen_orient(orient):
+    fps = get_fp_orient(dg_cfg['base_dir'], orient)
+    fps = fps[:200]
+    idxs_folds = get_fps_folds(fps, dg_cfg['folds'])
 
+    if not os.path.isdir(dg_cfg['out_dir']):
+        os.makedirs(dg_cfg['out_dir'])
 
+    for i, idxs_fold in enumerate(idxs_folds):
+        print(f'creating tfrecords for fold {i}')
+        fps_fold = [fps[idx[0]] for idx in idxs_fold]
+        out_path = os.path.join(dg_cfg['out_dir'], f'fold{i}_o{orient}')
+        
+        create_tfrecord(fps_fold, dg_cfg, out_path, orient)
 
 if __name__=='__main__':
     # must be in sn6_aug folder
@@ -226,15 +243,9 @@ if __name__=='__main__':
     else:
         print('using saved config')
     
-    fps = get_fp_orient(dg_cfg['base_dir'], dg_cfg['orient'])
-    idxs_folds = get_fps_folds(fps, dg_cfg['folds'])
-
-    if not os.path.isdir(dg_cfg['out_dir']):
-        os.makedirs(dg_cfg['out_dir'])
-
-    for i, idxs_fold in enumerate(idxs_folds):
-        print(f'creating tfrecords for fold {i}')
-        fps_fold = [fps[idx[0]] for idx in idxs_fold]
-        out_path = os.path.join(dg_cfg['out_dir'], f'fold{i}')
+    if dg_cfg['orient'] == 2:
+        datagen_orient(0)
+        datagen_orient(1)
+    else:
+        datagen_orient(dg_cfg['orient'])
         
-        create_tfrecord(fps_fold, dg_cfg, out_path)
