@@ -220,7 +220,6 @@ def create_tfrecord(raster_paths, cfg, base_fn, orient):
 
 def datagen_orient(orient):
     fps = get_fp_orient(dg_cfg['base_dir'], orient)
-    fps = fps[:200]
     idxs_folds = get_fps_folds(fps, dg_cfg['folds'])
 
     if not os.path.isdir(dg_cfg['out_dir']):
