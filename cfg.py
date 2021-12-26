@@ -1,11 +1,11 @@
 dg_cfg = {
     'base_dir'      : '../dataset/spacenet6-challenge/AOI_11_Rotterdam',
-    'out_dir'       : '../',
-    'orient'        : 0,
+    'out_dir'       : '../dataset/sn6_aug',
+    'orient'        : 2,            # 2 for both 0 and 1 orient
     'resize'        : None,
     'folds'         : 4,
-    'channel'       : [1,4,3],
-    'tfrec_size'    : 100,
+    'channel'       : [1],
+    'tfrec_size'    : 10,
     'out_precision' : 8,
 }
 
@@ -19,10 +19,11 @@ tr_cfg = {
     'IMAGE_RS'      : 320,
     'TRAIN_PATH'    : 'sn6-900-uint8-o1', #'sn6-900-uint8',  # kaggle ds name
     'TRAIN_SPLITS'  : ['fold0', 'fold1', 'fold2', 'fold3'],
+    'ORIENT'        : 0,            # if 2, use both orient 0 and 1
     'VAL_PATH'      : None, #'base-val-8',  # if None, don't validate
     'VAL_SPLITS'    : 'val',  # will only be considered if val path exist and IS_CV=0
     'IS_FP32'       : 0,       # 1 if train or validating on fp32
-    'SAR_CH'        : [1,4,3], # [0,3,2],      # HH, VV, VH. 0 = all channel
+    'SAR_CH'        : [1], # [0,3,2],      # HH, VV, VH. 0 = all channel
     
     # training cfg
     'DEVICE'        : 'gpu',
