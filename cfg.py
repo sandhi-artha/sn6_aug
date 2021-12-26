@@ -1,10 +1,10 @@
 dg_cfg = {
     'base_dir'      : '../dataset/spacenet6-challenge/AOI_11_Rotterdam',
-    'out_dir'       : '../',
+    'out_dir'       : '../dataset/sn6_aug/hist',
     'orient'        : 0,
     'resize'        : None,
     'folds'         : 4,
-    'channel'       : [1,4,3],
+    'channel'       : [1],
     'tfrec_size'    : 100,
     'out_precision' : 8,
 }
@@ -22,7 +22,7 @@ tr_cfg = {
     'VAL_PATH'      : None, #'base-val-8',  # if None, don't validate
     'VAL_SPLITS'    : 'val',  # will only be considered if val path exist and IS_CV=0
     'IS_FP32'       : 0,       # 1 if train or validating on fp32
-    'SAR_CH'        : [1,4,3], # [0,3,2],      # HH, VV, VH. 0 = all channel
+    'SAR_CH'        : [1], # [0,3,2],      # HH, VV, VH. 0 = all channel
     
     # training cfg
     'DEVICE'        : 'gpu',
@@ -38,7 +38,11 @@ tr_cfg = {
     'IS_CB_ES'      : 0,   # early stopping
     'IS_CB_LRS'     : 0,   # learning rate scheduler, if false uses lr_ramp
     
-    # augmentations
+    # hist augmentations, USE ONLY 1, OR ALL 0
+    'IS_NORM'       : 0,    # normalized image only
+    'IS_STD'        : 0,    # standardized image only
+    'IS_RAND_HIST'  : 0,    # either base image, norm, or std
+
     'IS_RESIZE'     : 1,       
     'IS_CROP'       : 0,
     'IS_HFLIP'      : 0,

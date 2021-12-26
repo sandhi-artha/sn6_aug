@@ -76,6 +76,8 @@ def get_filenames(split, ds_path, sub_path='', out=False):
 
 TFREC_FORMAT = {
     'image': tf.io.FixedLenFeature([], tf.string),
+    'image_norm': tf.io.FixedLenFeature([], tf.string),
+    'image_std': tf.io.FixedLenFeature([], tf.string),
     'label': tf.io.FixedLenFeature([], tf.string),
     'fn': tf.io.FixedLenFeature([], tf.string)
 }
@@ -84,6 +86,19 @@ def read_tfrecord(feature):
     features = tf.io.parse_single_example(feature, TFREC_FORMAT)
     fn = features["fn"]
     image = tf.io.parse_tensor(features["image"], tf.uint8)
+
+    if tr_cfg['IS_NORM']:
+        image = tf.io.parse_tensor(features["image_norm"], tf.uint8)
+    elif tr_cfg['IS_STD']:
+        image = tf.io.parse_tensor(features["image_std"], tf.uint8)
+    elif tr_cfg['IS_RAND_HIST']:
+        p_hist = tf.random.uniform([], 0, 1.0, dtype=tf.float32)
+        # take each 33% prob of taking base img, norm or std
+        if p_hist > .66:
+            image = tf.io.parse_tensor(features["image_norm"], tf.uint8)
+        elif p_hist > .33:
+            image = tf.io.parse_tensor(features["image_std"], tf.uint8)
+
     image = tf.cast(image, tf.float32)/255.0
     label = tf.io.parse_tensor(features["label"], tf.bool)
     label = tf.cast(label, tf.float32)
