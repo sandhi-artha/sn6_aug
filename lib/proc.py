@@ -70,7 +70,7 @@ def standardize(plane, cfirst=False):
 
     return stan_image
 
-def hist_clip(image, thresh):
+def hist_clip(image, thresh, clip_high=True):
     """removes extreme low/high pixel values that are rare (low count)
     to better stretch the image.
     image: np.array
@@ -91,12 +91,18 @@ def hist_clip(image, thresh):
     peak = np.argmax(hist)
     dif = peak-idx_limit[0][0]
     if dif>int(bins/2):
-        return hist_clip(image, thresh+80)
+        return hist_clip(image, thresh+40, clip_high=clip_high)
     else:
-        low_idx = idx_limit[0][0]
-        high_idx = idx_limit[-1][0]
         # get low and high pixel values
+        low_idx = idx_limit[0][0]
         low = bin[low_idx]
-        high = bin[high_idx]
+
+        if clip_high:
+            high_idx = idx_limit[-1][0]
+            high = bin[high_idx]
+        else:
+            high = None
+            
         # clip based on low and high limit
         return np.clip(image, a_min=low, a_max=high)
+            
