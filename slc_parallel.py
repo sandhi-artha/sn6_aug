@@ -11,8 +11,8 @@ from slc_cfg import slc_cfg
 
 def preproc_and_tiling(timestamp):
     out_fn = f'HH_{timestamp}.tif'
-    # sar_preproc = SarPreproc(slc_cfg, timestamp, slc_cfg["in_dir"], slc_cfg["out_dir"], out_fn)
-    # sar_preproc()
+    sar_preproc = SarPreproc(slc_cfg, timestamp, slc_cfg["in_dir"], slc_cfg["out_dir"], out_fn)
+    sar_preproc()
 
     proc_slc_path = os.path.join(slc_cfg["out_dir"], out_fn)  # slc.tif path
     raster_vector_tiling(slc_cfg, timestamp, slc_cfg['orient'], proc_slc_path)

@@ -11,6 +11,7 @@ slc_cfg = {
     
     # tiling
     'splits'        : ['val'],  # (list) what split to generate
+
     # if load_tile is 1, below data is where to load tiles from. Else, it's where to save data
     'project'       : 'sn6_aug',
     'name'          : 'base',       # (str) DO NOT USE 'train', 'val' or 'test' in the name
@@ -18,6 +19,13 @@ slc_cfg = {
     'out_dir'       : '../dataset/sn6_aug/val', # '../../sensor',  # where the tiles will be stored
     'label_dir'     : '../dataset/spacenet6-challenge/expanded/exp_geojson_buildings', # '../../expanded/geojson_buildings',  
     'verbose'       : 0,            # (int) 0 minimum logs, 1 for all info, 2 for necessary tiling
+
+    # tfrec
+    'resize'        : None,
+    'folds'         : 1,
+    'channel'       : [1],
+    'tfrec_size'    : 100,
+    'out_precision' : 8,
 }
 
 
