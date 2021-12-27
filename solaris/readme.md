@@ -1,0 +1,1 @@
+A fork and stripped down version of [Solaris](https://github.com/CosmiQ/solaris) from CosmiQ. We had trouble installing the library so we put some of their excellent geospatial processing here, and modified for this research propose
