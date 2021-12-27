@@ -6,12 +6,12 @@ import math  # augmentation and LR_ramp
 
 import tensorflow as tf
 from tensorflow.keras import backend as K
-import tensorflow_addons as tfa
+# import tensorflow_addons as tfa
 import segmentation_models as sm
 from tensorflow.keras.callbacks import EarlyStopping, ModelCheckpoint, CSVLogger, LearningRateScheduler, ReduceLROnPlateau
 
 
-print(f'tensorflow_addons version: {tfa.__version__}')
+# print(f'tensorflow_addons version: {tfa.__version__}')
 
 ### LOAD CONFIG ###
 if os.path.isfile('tr_cfg.json'):
@@ -52,7 +52,7 @@ def focal_tversky_loss(y_true, y_pred, gamma=0.75):
 
 LF_dict = {
     'bce'           : tf.keras.losses.BinaryCrossentropy(from_logits=True),
-    'focal'         : tfa.losses.SigmoidFocalCrossEntropy(),  # loss very low, but iou and f1 don't improve
+    # 'focal'         : tfa.losses.SigmoidFocalCrossEntropy(),  # loss very low, but iou and f1 don't improve
     'dice'          : dice_coef_loss,
     'tversky'       : tversky_loss,
     # 'giou'          : tfa.losses.GIoULoss(),  # error when training
@@ -78,14 +78,15 @@ def lrfn(epoch):
 
 
 # load pre-trained models
-def load_pretrained_model():
-    model_path = '../input/sn6-models/Unet_b4_512_imagenet_rgb_crop.h5'
+def load_pretrained_model(model_path):
 
     custom_objects = {
+        'dice_coef_loss': dice_coef_loss,
         'iou_score': sm.metrics.IOUScore(threshold=0.5),
         'f1-score': sm.metrics.FScore(threshold=0.5)
     }
     model = tf.keras.models.load_model(model_path, custom_objects=custom_objects)
+    print(f'Total params: {model.count_params():,}')
     return model
 
 def load_model():

@@ -16,13 +16,13 @@ tr_cfg = {
     
     # dataset cfg
     'IMAGE_DIM'     : 900,  # must be the same as tfrecord res
-    'IMAGE_RS'      : 320,
+    'IMAGE_RS'      : 640,
     'TRAIN_PATH'    : 'sn6-900-uint8-o1', #'sn6-900-uint8',  # kaggle ds name
     'TRAIN_SPLITS'  : ['fold0', 'fold1', 'fold2', 'fold3'],
     'VAL_PATH'      : None, #'base-val-8',  # if None, don't validate
     'VAL_SPLITS'    : 'val',  # will only be considered if val path exist and IS_CV=0
     'IS_FP32'       : 0,       # 1 if train or validating on fp32
-    'SAR_CH'        : [1,4,3], # [0,3,2],      # HH, VV, VH. 0 = all channel
+    'SAR_CH'        : [1], # [0,3,2],      # HH, VV, VH. 0 = all channel
     
     # training cfg
     'DEVICE'        : 'gpu',
@@ -49,7 +49,7 @@ tr_cfg = {
 
 
 # inferred config
-tr_cfg['BATCH_SIZE'] = 2
+tr_cfg['BATCH_SIZE'] = 4
 tr_cfg['SHUFFLE_BUFFER'] = 50
 
 

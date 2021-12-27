@@ -9,7 +9,11 @@ import tensorflow as tf
 ### PLOT ###
 def show_example(img, mask):
     f,ax = plt.subplots(1,2,figsize=(10,5))
-    ax[0].imshow(img)
+    if img.shape[-1] == 1:
+        cmap = 'gray'
+    else:
+        cmap = None
+    ax[0].imshow(img, cmap=cmap)
     if len(mask.shape)==3:
         mask = np.squeeze(mask, axis=-1)
     ax[1].imshow(mask, cmap='gray')
@@ -93,3 +97,5 @@ def show_predictions(model, ds_fn, n_show=4, shuffle=False, num_pass=0):
         for i in range(n_show):
             print(fn[i].numpy().decode())
             display_img([img[i], mask[i], pred_mask[i]])
+
+    
