@@ -2,6 +2,7 @@ import os
 import re    # count tfrec
 import gc    # deleting stuff
 import json
+import yaml
 
 import numpy as np
 import tensorflow as tf
@@ -168,6 +169,20 @@ def get_preview_dataset(files, n_show, shuffle=False):
 
 
 
+def get_config_wandb(run_path):
+    # restore file and read yaml as dict
+    cfg_file = wandb.restore('config.yaml', run_path=run_path)
+    cfg_y = yaml.load(cfg_file, Loader=yaml.FullLoader)
+    cfg_file.close()
+    
+    cfg = {}  # create new dictionary
+    
+    # get only capital keys, cfg that you wrote
+    for key in cfg_y.keys():
+        if key.isupper():
+            cfg[key] = cfg_y[key]['value']
+    
+    return cfg
 
 
 
