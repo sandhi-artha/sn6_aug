@@ -102,12 +102,4 @@ def data_augment(image, label):
 
     return image, label
 
-
-def fine_rotate(image, label):
-    rot_range = tr_cfg['ROT_RANGE']
-    rot = tf.random.uniform([], rot_range[0], rot_range[1], dtype=tf.int32)
-    image = tfa.image.rotate(image, rot)
-    label = tfa.image.rotate(label, rot)
-    return image, label
-
     

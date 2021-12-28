@@ -116,7 +116,7 @@ def load_dataset(filenames, load_fn=False, ordered=False):
 
     
 
-def get_training_dataset(files, augment=False, shuffle=True):
+def get_training_dataset(files, augment=True, shuffle=True):
     """
     train:
         - load_fn = 0
