@@ -86,10 +86,9 @@ def load_pretrained_model(model_path):
         'f1-score': sm.metrics.FScore(threshold=0.5)
     }
     model = tf.keras.models.load_model(model_path, custom_objects=custom_objects)
-    print(f'Total params: {model.count_params():,}')
     return model
 
-def load_model():
+def load_new_model():
     print(f'loading the {tr_cfg["ARC"]}_{tr_cfg["BACKBONE"]} model..')
     kwargs = {}
     
@@ -127,6 +126,25 @@ def load_model():
 
     model.compile(optim, loss, metrics)
     return model
+
+def load_model():
+    """either download new model, or use pt ones to continue training"""
+    weight = tr_cfg['WEIGHT']
+    if weight == 'imagenet' or weight is None:
+        print('loading new model')
+        model = load_new_model()
+    else:
+        # download .h5 file
+        cfg = get_config_wandb(run_path)
+        print(f'loading model {cfg["NAME"]}')
+        model_file = wandb.restore('model-best.h5', run_path=run_path)
+        model_path = model_file.name
+        model_file.close()
+        model = load_pretrained_model(model_path)
+    
+    print(f'Total params: {model.count_params():,}')
+    return model
+
 
 
 
