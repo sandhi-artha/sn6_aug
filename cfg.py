@@ -43,8 +43,10 @@ tr_cfg = {
     'IS_CROP'       : 0,
     'IS_HFLIP'      : 0,
     'IS_VFLIP'      : 0,
-    'IS_ROT'        : 0,
-    'IS_CH_SWAP'    : 0,
+    'IS_ROT'        : 1,
+
+    # aug magnitude
+    'ROT_RANGE'     : [-10, 10],  # None, activates fine rotate with min and max ANGLE
 }
 
 

@@ -2,10 +2,16 @@
 # only to import modules to train.py
 # TODO: implement augmentations for both image and mask (use concat)
 import tensorflow as tf
+import tensorflow_addons as tfa
+print(f'tensorflow_addons version: {tfa.__version__}')
 # from tensorflow.keras import backend as K
-# import math
+import math
 
 
+# convert string and other types to bool for faster change
+FINE_ROT = 0 if tr_cfg['ROT_RANGE'] is None else 1
+MIN_RAD = tr_cfg['ROT_RANGE'][0] * math.pi / 180
+MAX_RAD = tr_cfg['ROT_RANGE'][1] * math.pi / 180
 
 
 def resize_example(image, label, fn=None, ext_val=False):
@@ -65,31 +71,43 @@ def data_augment(image, label):
     
     # Flips
     if tr_cfg['IS_VFLIP']:
-        print('vflip')
         p_vflip = tf.random.uniform([], 0, 1.0, dtype=tf.float32)
         if p_vflip >= .5:
             image = tf.image.random_flip_up_down(image)
+            label = tf.image.random_flip_up_down(label)
     
     if tr_cfg['IS_HFLIP']:
-        print('hflip')
         p_hflip = tf.random.uniform([], 0, 1.0, dtype=tf.float32)
         if p_hflip >= .5:
             image = tf.image.random_flip_left_right(image)
+            label = tf.image.random_flip_left_right(label)
         
     # Rotates
     if tr_cfg['IS_ROT']:
-        print('rotates')
         p_rotate = tf.random.uniform([], 0, 1.0, dtype=tf.float32)
         if p_rotate > .75:
             image = tf.image.rot90(image, k=3) # rotate 270º
+            label = tf.image.rot90(label, k=3) # rotate 270º
         elif p_rotate > .5:
             image = tf.image.rot90(image, k=2) # rotate 180º
+            label = tf.image.rot90(label, k=2) # rotate 180º
         elif p_rotate > .25:
             image = tf.image.rot90(image, k=1) # rotate 90º
-    
+            label = tf.image.rot90(label, k=1) # rotate 90º
+
+    if FINE_ROT:
+        rot = tf.random.uniform([], MIN_RAD, MAX_RAD, dtype=tf.float32)
+        image = tfa.image.rotate(image, rot)
+        label = tfa.image.rotate(label, rot)
+
     return image, label
 
 
-
+def fine_rotate(image, label):
+    rot_range = tr_cfg['ROT_RANGE']
+    rot = tf.random.uniform([], rot_range[0], rot_range[1], dtype=tf.int32)
+    image = tfa.image.rotate(image, rot)
+    label = tfa.image.rotate(label, rot)
+    return image, label
 
     
