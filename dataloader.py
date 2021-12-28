@@ -160,7 +160,7 @@ def get_preview_dataset(files, n_show, shuffle=False):
         - ext_val = maybe
         - resize only
     """
-    dataset = load_dataset(files, load_fn=1)
+    dataset = load_dataset(files, load_fn=1, ordered=1)
     dataset = dataset.map(lambda img,label,fn: resize_example(img,label,fn,IS_EXT_VAL),
                           num_parallel_calls=AUTOTUNE)
     if shuffle: dataset = dataset.shuffle(250)
