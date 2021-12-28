@@ -135,9 +135,9 @@ def load_model():
         model = load_new_model()
     else:
         # download .h5 file
-        cfg = get_config_wandb(run_path)
+        cfg = get_config_wandb(weight)
         print(f'loading model {cfg["NAME"]}')
-        model_file = wandb.restore('model-best.h5', run_path=run_path)
+        model_file = wandb.restore('model-best.h5', run_path=weight)
         model_path = model_file.name
         model_file.close()
         model = load_pretrained_model(model_path)
