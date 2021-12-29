@@ -8,11 +8,6 @@ print(f'tensorflow_addons version: {tfa.__version__}')
 import math
 
 
-# convert string and other types to bool for faster change
-FINE_ROT = 0 if tr_cfg['ROT_RANGE'] is None else 1
-if FINE_ROT:
-    MIN_RAD = tr_cfg['ROT_RANGE'][0] * math.pi / 180
-    MAX_RAD = tr_cfg['ROT_RANGE'][1] * math.pi / 180
 
 
 def resize_example(image, label, fn=None, ext_val=False):
@@ -96,8 +91,10 @@ def data_augment(image, label):
             image = tf.image.rot90(image, k=1) # rotate 90º
             label = tf.image.rot90(label, k=1) # rotate 90º
 
-    if FINE_ROT:
-        rot = tf.random.uniform([], MIN_RAD, MAX_RAD, dtype=tf.float32)
+    if tr_cfg['IS_FINE_ROT']:
+        min_rad = tr_cfg['ROT_RANGE'][0] * math.pi / 180
+        max_rad = tr_cfg['ROT_RANGE'][1] * math.pi / 180
+        rot = tf.random.uniform([], min_rad, max_rad, dtype=tf.float32)
         image = tfa.image.rotate(image, rot)
         label = tfa.image.rotate(label, rot)
 
