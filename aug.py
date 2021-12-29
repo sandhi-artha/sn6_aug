@@ -36,10 +36,10 @@ def random_crop(image, label):
     label = tf.reshape(label, [tr_cfg['IMAGE_DIM'], tr_cfg['IMAGE_DIM'], 1])
     stacked_image = tf.concat([image, label], axis=-1)
     cropped_image = tf.image.random_crop(
-        stacked_image, size=[*size, 4])
+        stacked_image, size=[*size, IMAGE_CH+1])
     
     # for label, if you want [w,h,1] shape, use -1:
-    return cropped_image[:,:,:3], cropped_image[:,:,-1:]
+    return cropped_image[:,:,:IMAGE_CH], cropped_image[:,:,-1:]
 
 def reduce_res(image, label):
     """either random crop or resize
@@ -69,14 +69,15 @@ def data_augment(image, label):
     if tr_cfg['IS_VFLIP']:
         p_vflip = tf.random.uniform([], 0, 1.0, dtype=tf.float32)
         if p_vflip >= .5:
-            image = tf.image.random_flip_up_down(image)
-            label = tf.image.random_flip_up_down(label)
+            # not using random_flip_up_down bcz a chance that image not flip with label
+            image = tf.image.flip_up_down(image)
+            label = tf.image.flip_up_down(label)
     
     if tr_cfg['IS_HFLIP']:
         p_hflip = tf.random.uniform([], 0, 1.0, dtype=tf.float32)
         if p_hflip >= .5:
-            image = tf.image.random_flip_left_right(image)
-            label = tf.image.random_flip_left_right(label)
+            image = tf.image.flip_left_right(image)
+            label = tf.image.flip_left_right(label)
         
     # Rotates
     if tr_cfg['IS_ROT']:
