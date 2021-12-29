@@ -116,7 +116,7 @@ def load_dataset(filenames, load_fn=False, ordered=False):
 
     
 
-def get_training_dataset(files, augment=True, shuffle=True):
+def get_training_dataset(files, augment=True, shuffle=True, ordered=False):
     """
     train:
         - load_fn = 0
@@ -127,7 +127,7 @@ def get_training_dataset(files, augment=True, shuffle=True):
     augment only on train_ds
     shuffle before batch
     """
-    dataset = load_dataset(files)  # [900,900]
+    dataset = load_dataset(files, ordered=ordered)  # [900,900]
     dataset = dataset.map(reduce_res, num_parallel_calls=AUTOTUNE)  # [640,640]
     if augment: dataset = dataset.map(data_augment)
     dataset = dataset.repeat()
