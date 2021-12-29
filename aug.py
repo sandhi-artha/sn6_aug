@@ -10,8 +10,9 @@ import math
 
 # convert string and other types to bool for faster change
 FINE_ROT = 0 if tr_cfg['ROT_RANGE'] is None else 1
-MIN_RAD = tr_cfg['ROT_RANGE'][0] * math.pi / 180
-MAX_RAD = tr_cfg['ROT_RANGE'][1] * math.pi / 180
+if FINE_ROT:
+    MIN_RAD = tr_cfg['ROT_RANGE'][0] * math.pi / 180
+    MAX_RAD = tr_cfg['ROT_RANGE'][1] * math.pi / 180
 
 
 def resize_example(image, label, fn=None, ext_val=False):
