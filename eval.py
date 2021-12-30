@@ -310,13 +310,17 @@ if __name__ =='__main__':
     model_file.close()
     model = load_pretrained_model(model_path)
 
-    pred_gdf_path = os.path.join(ev_cfg['save_dir'], f'{cfg["NAME"]}_pred.geojson')
+    # pred_gdf_path = os.path.join(ev_cfg['save_dir'], f'{cfg["NAME"]}_pred.geojson')
 
     # for debug
-    # model = load_pretrained_model('model-best.h5')
+    # model = load_pretrained_model('evaluate/model-best.h5')
     # pred_gdf_path = 'comb_pred.geojson'
     # raster_fps = raster_fps[:5]
     
+    save_dir = os.path.join(ev_cfg['save_dir'], 'preds')
+    if not os.path.isdir(save_dir):
+        os.makedirs(save_dir)
+
     pred_gdf_list = []
     tot_raster = len(raster_fps)
 
@@ -328,21 +332,21 @@ if __name__ =='__main__':
         pred = model(image)
 
         # convert as polygon
-        pred_gdf = save_pred_vector(pred, raster_fp)
+        pred_gdf = save_pred_vector(pred, raster_fp, save_dir)
         
         # add tile_id
-        timestamp, tile_id = _get_ts_tile_id(raster_fp)
-        pred_gdf['timestamp'] = timestamp
-        pred_gdf['tile_id'] = tile_id
+        # timestamp, tile_id = _get_ts_tile_id(raster_fp)
+        # pred_gdf['timestamp'] = timestamp
+        # pred_gdf['tile_id'] = tile_id
 
-        pred_gdf_list.append(pred_gdf)
+        # pred_gdf_list.append(pred_gdf)
     print(f'finish in {time.time() - t_str}')
 
     # combine all pred_gdf and save as geojson
-    print(f'saving to {pred_gdf_path}')
-    crs = pred_gdf.crs
-    gdf_comb = gpd.GeoDataFrame(pd.concat(pred_gdf_list, ignore_index=True), crs=crs)
-    gdf_comb.to_file(pred_gdf_path, driver='GeoJSON')
+    # print(f'saving to {pred_gdf_path}')
+    # crs = pred_gdf.crs
+    # gdf_comb = gpd.GeoDataFrame(pd.concat(pred_gdf_list, ignore_index=True), crs=crs)
+    # gdf_comb.to_file(pred_gdf_path, driver='GeoJSON')
 
         
 
