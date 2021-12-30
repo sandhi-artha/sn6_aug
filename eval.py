@@ -10,11 +10,13 @@ import pandas as pd
 import seaborn as sns
 import tensorflow as tf
 import rasterio as rs
+from rasterio import features
+from shapely.geometry import shape
 import geopandas as gpd
 import wandb
+from affine import Affine
 
-from solaris.vector_mask import mask_to_poly_geojson
-from solaris.base import Evaluator
+
 from lib.proc import to_hwc, normalize
 from model import load_pretrained_model
 from dataloader import get_config_wandb
@@ -120,6 +122,114 @@ def save_combine_gdf(raster_fps, save_path):
     gdf_comb.to_file(save_path, driver='GeoJSON')
 
 
+def save_empty_geojson(path, crs):
+    empty_geojson_dict = {
+        "type": "FeatureCollection",
+        "crs":
+        {
+            "type": "name",
+            "properties":
+            {
+                "name": "urn:ogc:def:crs:EPSG:{}".format(crs.to_epsg())
+            }
+        },
+        "features":
+        []
+    }
+    with open(path, 'w') as f:
+        json.dump(empty_geojson_dict, f)
+        f.close()
+
+
+def mask_to_poly_geojson(bin_arr, reference_im=None,
+                         output_path=None, output_type='geojson', min_area=40,
+                         bg_threshold=0, do_transform=None, simplify=False,
+                         tolerance=0.5, **kwargs):
+    """Get polygons from an image mask.
+
+    Arguments
+    ---------
+    pred_arr : :class:`numpy.ndarray`
+        
+    reference_im : str, optional
+        The path to a reference geotiff to use for georeferencing the polygons
+        in the mask. Required if saving to a GeoJSON (see the ``output_type``
+        argument), otherwise only required if ``do_transform=True``.
+    output_path : str, optional
+        Path to save the output file to. If not provided, no file is saved.
+    output_type : ``'csv'`` or ``'geojson'``, optional
+        If ``output_path`` is provided, this argument defines what type of file
+        will be generated - a CSV (``output_type='csv'``) or a geojson
+        (``output_type='geojson'``).
+    min_area : int, optional
+        The minimum area of a polygon to retain. Filtering is done AFTER
+        any coordinate transformation, and therefore will be in destination
+        units.
+    bg_threshold : int, optional
+        The cutoff in ``bin_arr`` that denotes background (non-object).
+        Defaults to ``0``.
+    simplify : bool, optional
+        If ``True``, will use the Douglas-Peucker algorithm to simplify edges,
+        saving memory and processing time later. Defaults to ``False``.
+    tolerance : float, optional
+        The tolerance value to use for simplification with the Douglas-Peucker
+        algorithm. Defaults to ``0.5``. Only has an effect if
+        ``simplify=True``.
+
+    Returns
+    -------
+    gdf : :class:`geopandas.GeoDataFrame`
+        A GeoDataFrame of polygons.
+
+    """
+
+    if do_transform and reference_im is None:
+        raise ValueError(
+            'Coordinate transformation requires a reference image.')
+
+    if do_transform:
+        with rs.open(reference_im) as ref:
+            transform = ref.transform
+            crs = ref.crs
+            ref.close()
+    else:
+        transform = Affine(1, 0, 0, 0, 1, 0)  # identity transform
+        crs = rs.crs.CRS()
+
+    mask = bin_arr > bg_threshold
+    mask = mask.astype('uint8')
+
+    polygon_generator = features.shapes(bin_arr,
+                                        transform=transform,
+                                        mask=mask)
+    polygons = []
+    values = []  # pixel values for the polygon in mask_arr
+    for polygon, value in polygon_generator:
+        p = shape(polygon).buffer(0.0)
+        if p.area >= min_area:
+            polygons.append(shape(polygon).buffer(0.0))
+            values.append(value)
+
+    polygon_gdf = gpd.GeoDataFrame({'geometry': polygons, 'value': values},
+                                   crs=crs.to_wkt())
+    if simplify:
+        polygon_gdf['geometry'] = polygon_gdf['geometry'].apply(
+            lambda x: x.simplify(tolerance=tolerance)
+        )
+    # save output files
+    if output_path is not None:
+        if output_type.lower() == 'geojson':
+            if len(polygon_gdf) > 0:
+                polygon_gdf.to_file(output_path, driver='GeoJSON')
+            else:
+                save_empty_geojson(output_path, polygon_gdf.crs.to_epsg())
+        elif output_type.lower() == 'csv':
+            polygon_gdf.to_csv(output_path, index=False)
+
+    return polygon_gdf
+
+
+
 if __name__ =='__main__':
     if os.path.isfile('ev_cfg.json'):
         print('using Kaggle evaluation config')
@@ -172,20 +282,6 @@ if __name__ =='__main__':
     crs = pred_gdf.crs
     gdf_comb = gpd.GeoDataFrame(pd.concat(pred_gdf_list, ignore_index=True), crs=crs)
     gdf_comb.to_file(pred_gdf_path, driver='GeoJSON')
-
-    if ev_cfg['show_res']:
-        # combine all pred_gdf and save as geojson
-        true_gdf_path = os.path.join(ev_cfg['save_dir'], 'true.geojson')
-        save_combine_gdf(raster_fps, true_gdf_path)
-
-        evaluator = Evaluator(true_gdf_path)
-        evaluator.load_proposal(pred_gdf_path, proposalCSV=False, conf_field_list=[])
-
-        res = evaluator.eval_iou_return_GDFs(calculate_class_scores=False)
-        print(res[0])
-        # if res[1] is not None and res[2] is not None:
-        #     tp_from_gt_gdf = get_tp_from_gt(res[2], true_gdf_path)
-        #     show_eval_res(res, tp_from_gt_gdf)
 
         
 
