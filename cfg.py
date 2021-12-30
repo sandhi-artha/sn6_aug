@@ -56,6 +56,13 @@ tr_cfg['BATCH_SIZE'] = 4
 tr_cfg['SHUFFLE_BUFFER'] = 50
 
 
+ev_cfg = {
+    'run_path'      : '',
+    'base_dir'      : '../dataset/sn6_aug/val',  # where raster and vector dir are located
+    'save_dir'      : '../',
+    'show_res'      : 1,        # loads true_gdf and run through evaluator
+}
+
 """
 %cd sn6_aug
 
