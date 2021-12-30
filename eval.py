@@ -315,7 +315,7 @@ if __name__ =='__main__':
     # for debug
     # model = load_pretrained_model('model-best.h5')
     # pred_gdf_path = 'comb_pred.geojson'
-    raster_fps = raster_fps[:5]
+    # raster_fps = raster_fps[:5]
     
     pred_gdf_list = []
     tot_raster = len(raster_fps)
