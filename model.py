@@ -13,13 +13,7 @@ from tensorflow.keras.callbacks import EarlyStopping, ModelCheckpoint, CSVLogger
 
 # print(f'tensorflow_addons version: {tfa.__version__}')
 
-### LOAD CONFIG ###
-if os.path.isfile('tr_cfg.json'):
-    with open('tr_cfg.json', 'r') as fp: tr_cfg = json.load(fp)
-else:
-    from cfg import tr_cfg
 
-IMAGE_CH = len(tr_cfg['SAR_CH'])
 
 
 

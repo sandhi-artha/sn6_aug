@@ -11,33 +11,6 @@ from wandb.keras import WandbCallback
 
 
 
-### KEEP TRACK - VOLATILE CHANGES
-print(tf.__version__)
-print(f'Wandb Version: {wandb.__version__}')
-
-
-### LOAD CONFIG ###
-if os.path.isfile('tr_cfg.json'):
-    print('using Kaggle config')
-    with open('tr_cfg.json', 'r') as fp:
-        tr_cfg = json.load(fp)
-else:
-    from cfg import tr_cfg
-    print('using saved config')
-
-
-
-
-
-
-### GLOBAL VARIABLES ###
-AUTOTUNE = tf.data.experimental.AUTOTUNE
-
-# convert string and other types to bool for faster change
-IS_EXT_VAL = 1 if tr_cfg['VAL_PATH'] == 'base-val-8' else 0
-IMAGE_CH = len(tr_cfg['SAR_CH'])
-
-
 
 def seed_everything(seed):
 #     random.seed(seed)
@@ -186,7 +159,29 @@ def get_config_wandb(run_path):
 
 
 
+if __name__=='__main__':
+    # when %run -i dataloader.py in jupyter, all variables here and functions are accessible
 
+    ### KEEP TRACK - VOLATILE CHANGES
+    print(tf.__version__)
+    print(f'Wandb Version: {wandb.__version__}')
+
+
+    ### LOAD CONFIG ###
+    if os.path.isfile('tr_cfg.json'):
+        print('using Kaggle config')
+        with open('tr_cfg.json', 'r') as fp:
+            tr_cfg = json.load(fp)
+    else:
+        from cfg import tr_cfg
+        print('using saved config')
+
+    ### GLOBAL VARIABLES ###
+    AUTOTUNE = tf.data.experimental.AUTOTUNE
+
+    # convert string and other types to bool for faster change
+    IS_EXT_VAL = 1 if tr_cfg['VAL_PATH'] == 'base-val-8' else 0
+    IMAGE_CH = len(tr_cfg['SAR_CH'])
 
 
 
