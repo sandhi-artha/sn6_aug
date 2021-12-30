@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+import seaborn as sns
 import matplotlib.pyplot as plt
 
 from .proc import to_chw, to_hwc
@@ -55,3 +56,62 @@ def show_hist(image, ax=None, cfirst=False, num_bins=256, start=None, end=None):
         for i in range(image.shape[-1]):
             ax.hist(image[:,:,i].ravel(), num_bins, [start,end],
                     color=color[i], histtype='step', alpha=0.6)
+
+
+### PLOT ###
+def show_example(img, mask):
+    f,ax = plt.subplots(1,2,figsize=(10,5))
+    if img.shape[-1] == 1:
+        cmap = 'gray'
+    else:
+        cmap = None
+    ax[0].imshow(img, cmap=cmap)
+    if len(mask.shape)==3:
+        mask = np.squeeze(mask, axis=-1)
+    ax[1].imshow(mask, cmap='gray')
+    plt.show()
+
+def plot_metrics(history):
+    sns.set(style='whitegrid')
+    metric_list = [m for m in list(history.keys()) if m is not 'lr']
+    size = len(metric_list)//2  # adjust vertical space to fit all metrics
+    fig, axes = plt.subplots(size, 1, sharex='col', figsize=(20, size * 4))
+    if size > 1:
+        axes = axes.flatten()
+    else:
+        axes = [axes]
+    
+    for index in range(len(metric_list)//2):
+        metric_name = metric_list[index]
+        val_metric_name = metric_list[index+size]
+        axes[index].plot(history[metric_name], label='Train %s' % metric_name)
+        axes[index].plot(history[val_metric_name], label='Validation %s' % metric_name)
+        axes[index].legend(loc='best', fontsize=16)
+        axes[index].set_title(metric_name)
+        if 'loss' in metric_name:
+            axes[index].axvline(np.argmin(history[metric_name]), linestyle='dashed')
+            axes[index].axvline(np.argmin(history[val_metric_name]), linestyle='dashed', color='orange')
+        else:
+            axes[index].axvline(np.argmax(history[metric_name]), linestyle='dashed')
+            axes[index].axvline(np.argmax(history[val_metric_name]), linestyle='dashed', color='orange')
+
+    plt.xlabel('Epochs', fontsize=16)
+    sns.despine()
+    plt.show()
+    sns.set_theme()
+    
+    # print model performance
+    bm_idx = np.argmin(history['val_loss'])
+    print(f'best model at epoch: {bm_idx}')
+    v_loss = history['val_loss'][bm_idx]
+    v_iou = history["val_iou_score"][bm_idx]
+    v_f1 = history["val_f1-score"][bm_idx]
+
+    loss = history['loss'][bm_idx]
+    iou = history["iou_score"][bm_idx]
+    f1 = history["f1-score"][bm_idx]
+
+
+    print(f'val loss: {v_loss:.4f}, val iou: {v_iou:.4f}, val f1: {v_f1:.4f}')
+    print(f'loss: {loss:.4f}, iou: {iou:.4f}, f1: {f1:.4f}')
+    print(f'best val IoU: {np.max(history["val_iou_score"])}')
