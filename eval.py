@@ -129,7 +129,7 @@ def save_empty_geojson(path, crs):
             "type": "name",
             "properties":
             {
-                "name": "urn:ogc:def:crs:EPSG:{}".format(crs.to_epsg())
+                "name": "urn:ogc:def:crs:EPSG:{}".format(crs)
             }
         },
         "features":
@@ -330,6 +330,7 @@ if __name__ =='__main__':
         # load image and predict a mask
         image = load_val_image(raster_fp)
         pred = model(image)
+        pred = create_binary_mask(pred)
 
         # convert as polygon
         pred_gdf = save_pred_vector(pred, raster_fp, save_dir)
