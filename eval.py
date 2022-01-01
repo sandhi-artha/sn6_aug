@@ -298,11 +298,12 @@ def _get_vector_from_preds(pred_fp, base_dir):
 
 
 def get_pt_model(run_path, debug=0):
+    """load pre-trained model and its config from wandb
+    """
     if debug:
         model = load_pretrained_model('evaluate/model-best.h5')
         return model, 'base'
 
-    # load pre-trained model and its config from wandb
     cfg = get_config_wandb(run_path)
     model_name = cfg['NAME']
     print(f'loading model {model_name}')
@@ -314,6 +315,8 @@ def get_pt_model(run_path, debug=0):
 
 
 def eval_tile(pred_fp, base_dir):
+    """returns vector geodataframe labeled with hit=1 for TP, or hit=0 for FN
+    """
     true_fp = _get_vector_from_preds(pred_fp, base_dir)
     true_gdf = gpd.read_file(true_fp)
 
@@ -330,7 +333,7 @@ def eval_tile(pred_fp, base_dir):
         if FN_true is not None:  # handles when there's zero fn and FN_true is None
             true_gdf.iloc[FN_true.index,-1] = 0
     
-    return true_gdf
+        return true_gdf
 
 
 
@@ -345,7 +348,7 @@ if __name__ =='__main__':
 
     # read all raster paths
     raster_fps = glob.glob(f'{ev_cfg["base_dir"]}/raster/*.tif')
-    raster_fps = raster_fps[:5]  # for debugging
+    # raster_fps = raster_fps[:5]  # for debugging
 
     model, model_name = get_pt_model(ev_cfg['run_path'], debug=0)
     
@@ -367,7 +370,8 @@ if __name__ =='__main__':
         pred_gdf, pred_fp = save_pred_vector(pred, raster_fp, save_dir)
         
         true_gdf = eval_tile(pred_fp, ev_cfg["base_dir"])
-        true_gdf_list.append(true_gdf)
+        if true_gdf is not None:  # only append tiles with buildings in it
+            true_gdf_list.append(true_gdf)
     
     print(f'finish in {time.time() - t_str}')
 
