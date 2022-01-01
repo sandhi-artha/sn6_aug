@@ -22,7 +22,7 @@ from model import load_pretrained_model
 from dataloader import get_config_wandb
 from cfg import ev_cfg
 
-
+from solaris.base import Evaluator
 
 
 
@@ -92,18 +92,19 @@ def save_pred_vector(preds, raster_fp, out_dir=None):
     """create polygon from prediction mask
     if out_dir==None, geojson won't be saved
     """
+    preds = create_binary_mask(preds)
     preds = tf.image.resize(preds, (900,900))
     fn = _get_raster_fn(raster_fp)
     if out_dir is None:
-        pred_path = None
+        pred_fp = None
     else:
-        pred_path = f'{out_dir}/{fn}_pred.geojson'
+        pred_fp = f'{out_dir}/{fn}_pred.geojson'
     pred_gdf = mask_to_poly_geojson(
         preds.numpy()[0], reference_im=raster_fp,
-        output_path=pred_path, simplify=True,
+        output_path=pred_fp, simplify=True,
         do_transform=True)
     
-    return pred_gdf
+    return pred_gdf, pred_fp
 
 def save_combine_gdf(raster_fps, save_path):
     """from raster file_paths, read all vector file_paths
@@ -290,6 +291,49 @@ def mask_to_poly_geojson(pred_arr, channel_scaling=None, reference_im=None,
     return polygon_gdf
 
 
+def _get_vector_from_preds(pred_fp, base_dir):
+    true_fp = os.path.join(base_dir, 'vector', os.path.basename(pred_fp))
+    true_fp = true_fp.replace('_pred', '')
+    return true_fp
+
+
+def get_pt_model(run_path, debug=0):
+    if debug:
+        model = load_pretrained_model('evaluate/model-best.h5')
+        return model, 'base'
+
+    # load pre-trained model and its config from wandb
+    cfg = get_config_wandb(run_path)
+    model_name = cfg['NAME']
+    print(f'loading model {model_name}')
+    model_file = wandb.restore('model-best.h5', run_path=run_path)
+    model_path = model_file.name
+    model_file.close()
+    model = load_pretrained_model(model_path)
+    return model, model_name
+
+
+def eval_tile(pred_fp, base_dir):
+    true_fp = _get_vector_from_preds(pred_fp, base_dir)
+    true_gdf = gpd.read_file(true_fp)
+
+    evaluator = Evaluator(true_fp)
+    evaluator.load_proposal(pred_fp, proposalCSV=False, conf_field_list=[])
+    result, TP_pred, FN_true, FP_pred = evaluator.eval_iou_return_GDFs(calculate_class_scores=False)
+
+    # tile with no buildings doesn't append
+    if true_gdf.shape[0]>0:
+        true_gdf['timestamp'], true_gdf['tile_id'] = _get_ts_tile_id(raster_fp)
+        
+        # assign everything as hit, then change to 0 if index is in FN_true
+        true_gdf['hit'] = 1
+        if FN_true is not None:  # handles when there's zero fn and FN_true is None
+            true_gdf.iloc[FN_true.index,-1] = 0
+    
+    return true_gdf
+
+
+
 
 if __name__ =='__main__':
     if os.path.isfile('ev_cfg.json'):
@@ -301,46 +345,30 @@ if __name__ =='__main__':
 
     # read all raster paths
     raster_fps = glob.glob(f'{ev_cfg["base_dir"]}/raster/*.tif')
+    raster_fps = raster_fps[:5]  # for debugging
 
-    # load pre-trained model and its config from wandb
-    cfg = get_config_wandb(ev_cfg['run_path'])
-    print(f'loading model {cfg["NAME"]}')
-    model_file = wandb.restore('model-best.h5', run_path=ev_cfg['run_path'])
-    model_path = model_file.name
-    model_file.close()
-    model = load_pretrained_model(model_path)
-
-    # pred_gdf_path = os.path.join(ev_cfg['save_dir'], f'{cfg["NAME"]}_pred.geojson')
-
-    # for debug
-    # model = load_pretrained_model('evaluate/model-best.h5')
-    # pred_gdf_path = 'comb_pred.geojson'
-    # raster_fps = raster_fps[:5]
+    model, model_name = get_pt_model(ev_cfg['run_path'], debug=0)
     
-    save_dir = os.path.join(ev_cfg['save_dir'], 'preds')
+    save_dir = os.path.join(ev_cfg['save_dir'], model_name)
     if not os.path.isdir(save_dir):
         os.makedirs(save_dir)
 
-    pred_gdf_list = []
+    true_gdf_list = []
     tot_raster = len(raster_fps)
 
     t_str = time.time()
     for i,raster_fp in enumerate(raster_fps):
-        print(f'{i} out of {tot_raster}')
+        if i%50 == 0: print(f'{i} out of {tot_raster}')
         # load image and predict a mask
         image = load_val_image(raster_fp)
         pred = model(image)
-        pred = create_binary_mask(pred)
 
         # convert as polygon
-        pred_gdf = save_pred_vector(pred, raster_fp, save_dir)
+        pred_gdf, pred_fp = save_pred_vector(pred, raster_fp, save_dir)
         
-        # add tile_id
-        # timestamp, tile_id = _get_ts_tile_id(raster_fp)
-        # pred_gdf['timestamp'] = timestamp
-        # pred_gdf['tile_id'] = tile_id
-
-        # pred_gdf_list.append(pred_gdf)
+        true_gdf = eval_tile(pred_fp, ev_cfg["base_dir"])
+        true_gdf_list.append(true_gdf)
+    
     print(f'finish in {time.time() - t_str}')
 
     # combine all pred_gdf and save as geojson
@@ -348,6 +376,9 @@ if __name__ =='__main__':
     # crs = pred_gdf.crs
     # gdf_comb = gpd.GeoDataFrame(pd.concat(pred_gdf_list, ignore_index=True), crs=crs)
     # gdf_comb.to_file(pred_gdf_path, driver='GeoJSON')
+    
+    true_gdf_path = os.path.join(ev_cfg['save_dir'], f'{model_name}.geojson')
+    true_gdf_list.to_file(true_gdf_path, driver='GeoJSON')
 
         
 

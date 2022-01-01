@@ -388,7 +388,7 @@ class Evaluator():
                 self.ground_truth_GDF_Edit = self.ground_truth_GDF.copy(
                     deep=True)
 
-            for _, pred_row in tqdm(self.proposal_GDF.iterrows()):
+            for _, pred_row in self.proposal_GDF.iterrows():  # for clean execution remove tqdm
                 if pred_row['__max_conf_class'] == class_id or class_id == 'all':
                     pred_poly = pred_row.geometry
                     iou_GDF = iou.calculate_iou(pred_poly,
