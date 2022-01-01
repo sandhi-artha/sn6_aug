@@ -371,14 +371,13 @@ if __name__ =='__main__':
     
     print(f'finish in {time.time() - t_str}')
 
-    # combine all pred_gdf and save as geojson
-    # print(f'saving to {pred_gdf_path}')
-    # crs = pred_gdf.crs
-    # gdf_comb = gpd.GeoDataFrame(pd.concat(pred_gdf_list, ignore_index=True), crs=crs)
-    # gdf_comb.to_file(pred_gdf_path, driver='GeoJSON')
-    
+    # comnbine true_gdf
+    crs = true_gdf_list[0].crs
+    gdf_comb = gpd.GeoDataFrame(pd.concat(true_gdf_list, ignore_index=True), crs=crs)
+
+    # save true_gdf
     true_gdf_path = os.path.join(ev_cfg['save_dir'], f'{model_name}.geojson')
-    true_gdf_list.to_file(true_gdf_path, driver='GeoJSON')
+    gdf_comb.to_file(true_gdf_path, driver='GeoJSON')
 
         
 
