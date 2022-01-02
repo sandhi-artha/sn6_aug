@@ -4,10 +4,8 @@ import json
 import glob
 import time
 
-import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import seaborn as sns
 import tensorflow as tf
 import rasterio as rs
 from rasterio import features
@@ -28,40 +26,6 @@ from solaris.base import Evaluator
 
 
 ### EVALUATION ###
-# for binary you need a threshold value to differ what's category 0 and what's 1
-def create_binary_mask(pred_mask):
-    thresh = 0.5
-    return tf.where(pred_mask>=thresh, 1, 0)
-
-def display_img(display_list):
-    title = ['Input Tile', 'True Maks', 'Predicted Mask']
-    plt.figure(figsize=(18,8))
-    
-    for i in range(len(display_list)):
-        if display_list[i].shape[-1] == 1:
-            cmap = 'gray'
-        else:
-            cmap = None
-        plt.subplot(1, len(display_list), i+1)
-        plt.title(title[i], fontsize=24)
-        plt.imshow(tf.keras.preprocessing.image.array_to_img(display_list[i]), cmap=cmap)
-        plt.axis('off')
-
-    plt.tight_layout()
-    plt.show()
-
-def show_predictions(model, ds_fn, n_show=4, shuffle=False, num_pass=0):
-    """ create new dataset, shuffle(250), batch(n_show), predict and display with fn
-    """
-    dataset = get_preview_dataset(ds_fn, n_show, shuffle)
-    
-    for img,mask,fn in dataset.skip(num_pass).take(1):
-        pred_mask = model(img)
-        pred_mask = create_binary_mask(pred_mask)
-        for i in range(n_show):
-            print(fn[i].numpy().decode())
-            display_img([img[i], mask[i], pred_mask[i]])
-
 
 def _get_raster_fn(raster_fp):
     bn = os.path.basename(raster_fp)
