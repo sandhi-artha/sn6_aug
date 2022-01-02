@@ -45,9 +45,11 @@ tr_cfg = {
     'IS_VFLIP'      : 0,
     'IS_ROT'        : 1,
     'IS_FINE_ROT'   : 0,
+    'IS_F_GAUS'     : 1,
 
     # aug magnitude
     'ROT_RANGE'     : [-10, 10],  # None, activates fine rotate with min and max ANGLE
+    'GAUS_SIGMA'    : 3.0,
 }
 
 
@@ -59,7 +61,8 @@ tr_cfg['SHUFFLE_BUFFER'] = 50
 ev_cfg = {
     'run_path'      : '',
     'base_dir'      : '../dataset/sn6_aug/val',  # where raster and vector dir are located
-    'save_dir'      : '../',
+    'save_dir'      : '../dataset/sn6_aug',
+    'chart'         : 'tp',     # 'tp','recall'
 }
 
 """

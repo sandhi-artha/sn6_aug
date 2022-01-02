@@ -99,6 +99,32 @@ def data_augment(image, label):
         image = tfa.image.rotate(image, rot)
         label = tfa.image.rotate(label, rot)
 
+    if tr_cfg['IS_F_GAUS']:
+        p_filter = tf.random.uniform([], 0, 1.0, dtype=tf.float32)
+        sigma = tr_cfg['GAUS_SIGMA']
+
+        if p_filter > .75:
+            image = tfa.image.gaussian_filter2d(
+                image, filter_shape=(2,2), sigma=sigma, padding='REFLECT')
+        if p_filter > .5:
+            image = tfa.image.gaussian_filter2d(
+                image, filter_shape=(3,3), sigma=sigma, padding='REFLECT')
+        elif p_filter > .25:
+            image = tfa.image.gaussian_filter2d(
+                image, filter_shape=(4,4), sigma=sigma, padding='REFLECT')
+
     return image, label
 
+
+    # if tr_cfg['IS_LIGHT_FILT']:
+    #     p_filter = tf.random.uniform([], 0, 1.0, dtype=tf.float32)
+    #     if p_filter > .75:
+    #         image = tfa.image.mean_filter2d(
+    #             image, filter_shape=(2,2), padding='CONSTANT', constant_values=0.0)
+    #     elif p_filter > .5:
+    #         image = tfa.image.median_filter2d(
+    #             image, filter_shape=(2,2), padding='CONSTANT', constant_values=0.0)
+    #     elif p_filter > .25:
+    #         image = tfa.image.gaussian_filter2d(
+    #             image, filter_shape=(2,2), sigma=0.8, padding='CONSTANT', constant_values=0.0)
     
