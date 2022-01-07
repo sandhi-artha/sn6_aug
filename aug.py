@@ -113,6 +113,20 @@ def data_augment(image, label):
             image = tfa.image.gaussian_filter2d(
                 image, filter_shape=(4,4), sigma=sigma, padding='REFLECT')
 
+    if tr_cfg['IS_F_MED']:
+        p_filter = tf.random.uniform([], 0, 1.0, dtype=tf.float32)
+        if p_filter > .75:
+            image = tfa.image.median_filter2d(
+                image, filter_shape=(2,2), padding='REFLECT')
+        if p_filter > .5:
+            image = tfa.image.median_filter2d(
+                image, filter_shape=(3,3), padding='REFLECT')
+        elif p_filter > .25:
+            image = tfa.image.median_filter2d(
+                image, filter_shape=(4,4), padding='REFLECT')
+
+    
+
     return image, label
 
 
