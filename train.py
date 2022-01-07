@@ -1,3 +1,6 @@
+import seaborn as sns
+import matplotlib.pyplot as plt
+
 def train(train_splits, val_splits):
     # clear tensorflow state
     K.clear_session()

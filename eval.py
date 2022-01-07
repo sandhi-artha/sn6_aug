@@ -27,6 +27,10 @@ from solaris.base import Evaluator
 
 ### EVALUATION ###
 
+def create_binary_mask(pred_mask):
+    thresh = 0.5
+    return tf.where(pred_mask>=thresh, 1, 0)
+
 def _get_raster_fn(raster_fp):
     bn = os.path.basename(raster_fp)
     return bn.split('.')[0]
