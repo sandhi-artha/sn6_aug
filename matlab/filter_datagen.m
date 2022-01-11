@@ -8,6 +8,7 @@ filt_list = ["elee" "frost" "gmap"];
 win_list = [3 5 7];
 
 for i = 1:length(filenames1)
+    fprintf('tile %d from %d\n', i, length(filenames1))
     fp = append(DATA_DIR, '\', filenames1(i));
 
     % read raster
@@ -25,7 +26,11 @@ for i = 1:length(filenames1)
             
             % silence p-regen warning, only need to do once per session
             warning('off','last');
-
+            
+            % handle when output is below 1 (nodata value in linear)
+            % prevents inf when converting back to dB if there's value 0
+            sar_res(sar_res < 1) = 1;
+            
             % convert to dB again and rescale to range of uint8
             sar_res = uint8(rescale(to_db(sar_res), 0, 255));
 
