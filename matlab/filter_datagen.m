@@ -1,40 +1,49 @@
-% read an example
-DATA_DIR = '';
-ex_fn = '';
-% image contianing buildings with speckle
-ex_fp = 'D:\Projects\python\dataset\spacenet6-challenge\AOI_11_Rotterdam\SAR-Intensity\SN6_Train_AOI_11_Rotterdam_SAR-Intensity_20190804135332_20190804135556_tile_7159.tif';
-% image of water (homogenous), for true homogenous, std = 0
-% ex_fp = 'D:\Projects\python\dataset\spacenet6-challenge\AOI_11_Rotterdam\SAR-Intensity\SN6_Train_AOI_11_Rotterdam_SAR-Intensity_20190804124749_20190804125033_tile_3671.tif';
+% read rasters from orientation 1
+DATA_DIR = 'D:\Projects\python\dataset\spacenet6-challenge\AOI_11_Rotterdam\SAR-Intensity';
+BASE_SAVE_DIR = 'D:\Projects\python\dataset\sn6_aug\filter';
+filenames1 = readlines("orient1_fp.txt", "EmptyLineRule","skip");
 
-[sar,r] = readgeoraster(ex_fp);
-% read just the HH of SAR
-sar_hh = db2mag(sar(:,:,1));
-% sar_hh = sar(301:end,1:600,1);  % crop the nodata part
-% sar_ori = rescale(sar_hh);
 
-% 'mean', 'mmse', 'kuan', 'ekuan', 'lee', 'elee', 'frost', 'efrost', 'gmap', 'av2d', 'ml2d', 'bm3d'
-f_list = ["mean" "mmse" "elee" "frost" "gmap"];
-% f_list = ["ml2d" "bm3d"];
-k_list = [3 5 7 9];
+filt_list = ["elee" "frost" "gmap"];
+win_list = [3 5 7];
 
-% f = tiledlayout(length(f_list), length(k_list), 'TileSpacing', 'compact', 'Padding', 'compact');
+for i = 1:length(filenames1)
+    fp = append(DATA_DIR, '\', filenames1(i));
 
-% matlab ask to regenerate the P-file, I simply turn off warning
-for f_idx = 1:length(f_list)
-    fig = figure();
-    f = tiledlayout(1, length(k_list), 'TileSpacing', 'tight', 'Padding', 'tight');
-    for k_idx = 1:length(k_list)
-        filt = f_list(f_idx);
-        size = k_list(k_idx);
-        sar_res = sarimg_despeckling_filter(filt, sar_hh, 1, size, 2);
-        warning('off','last');  % only need to do once per session
-        
-        im_std = std(sar_res, 0, 'all', 'omitnan');
-        
-        nexttile
-        imshow(rescale(mag2db(sar_res))); title(filt + "-" + size + "std: " + im_std)
-        
+    % read raster
+    [sar,r] = readgeoraster(fp);
+    % read just HH and convert to linear scale
+    sar_hh = to_lin(sar(:,:,1));
+
+    % loop through all selected filters
+    for j = 1:length(filt_list)
+        %loop through all window_size
+        for k = 1:length(win_list)
+            filt = filt_list(j);
+            win = win_list(k);
+            sar_res = sarimg_despeckling_filter(filt, sar_hh, 1, win, 2);
+            
+            % silence p-regen warning, only need to do once per session
+            warning('off','last');
+
+            % convert to dB again and rescale to range of uint8
+            sar_res = uint8(rescale(to_db(sar_res), 0, 255));
+
+            % save to filter folder with same filename as original
+            save_fn = strrep(filenames1(i), '.tif','.png');
+            save_dir = append(BASE_SAVE_DIR, '\', filt, '\', num2str(win));
+            status = mkdir(save_dir);
+            save_fp = append(save_dir, '\', save_fn);
+            imwrite(sar_res, save_fp)
+        end
     end
-    exportgraphics(fig, "result_linear\"+filt+".png", 'Resolution', 700);
-    close(fig)
+end
+
+
+function y_db = to_db(y)
+    y_db = 10*log10(y);
+end
+
+function y = to_lin(y_db)
+    y = 10.^(y_db/10);
 end
