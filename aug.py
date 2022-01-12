@@ -99,6 +99,40 @@ def data_augment(image, label):
         image = tfa.image.rotate(image, rot)
         label = tfa.image.rotate(label, rot)
 
+
+    # Shear
+    if tr_cfg['IS_SHEAR_X']:
+        """not optimal, shear from tfa works only for rgb
+        """
+        p_shear = tf.random.uniform([], 0, 1.0, dtype=tf.float32)
+        if p_shear > 0.5:
+            min_shear = tr_cfg['SHEAR_RANGE'][0] * math.pi / 180
+            max_shear = tr_cfg['SHEAR_RANGE'][1] * math.pi / 180
+            shear = tf.random.uniform([], min_shear, max_shear, dtype=tf.float32)
+            image = tf.image.grayscale_to_rgb(image)
+            image = tfa.image.shear_x(image, shear, 0.0)
+            image = tf.image.rgb_to_grayscale(image)
+
+            label = tf.image.grayscale_to_rgb(label)
+            label = tfa.image.shear_x(label, shear, 0.0)
+            label = tf.image.rgb_to_grayscale(label)
+           
+    if tr_cfg['IS_SHEAR_Y']:
+        p_shear = tf.random.uniform([], 0, 1.0, dtype=tf.float32)
+        if p_shear > 0.5:
+            min_shear = tr_cfg['SHEAR_RANGE'][0] * math.pi / 180
+            max_shear = tr_cfg['SHEAR_RANGE'][1] * math.pi / 180
+            shear = tf.random.uniform([], min_shear, max_shear, dtype=tf.float32)
+            image = tf.image.grayscale_to_rgb(image)
+            image = tfa.image.shear_y(image, shear, 0.0)
+            image = tf.image.rgb_to_grayscale(image)
+
+            label = tf.image.grayscale_to_rgb(label)
+            label = tfa.image.shear_y(label, shear, 0.0)
+            label = tf.image.rgb_to_grayscale(label)
+
+
+    # Filters
     if tr_cfg['IS_F_GAUS']:
         p_filter = tf.random.uniform([], 0, 1.0, dtype=tf.float32)
         sigma = tr_cfg['GAUS_SIGMA']

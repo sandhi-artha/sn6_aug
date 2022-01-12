@@ -1,11 +1,11 @@
 dg_cfg = {
     'base_dir'      : '../dataset/spacenet6-challenge/AOI_11_Rotterdam',
-    'out_dir'       : '../',
-    'orient'        : 0,
+    'out_dir'       : '../dataset/sn6_aug/filter_aug_tfrec',
+    'orient'        : 1,
     'resize'        : None,
     'folds'         : 4,
-    'channel'       : [1,4,3],
-    'tfrec_size'    : 100,
+    'channel'       : [1],
+    'tfrec_size'    : 50,
     'out_precision' : 8,
 }
 
@@ -45,12 +45,15 @@ tr_cfg = {
     'IS_VFLIP'      : 0,
     'IS_ROT'        : 1,
     'IS_FINE_ROT'   : 0,
+    'IS_SHEAR_X'    : 0,
+    'IS_SHEAR_Y'    : 0,
 
     'IS_F_GAUS'     : 1,
     'IS_F_MED'      : 0,
 
     # aug magnitude
     'ROT_RANGE'     : [-10, 10],  # None, activates fine rotate with min and max ANGLE
+    'SHEAR_RANGE'   : [-10, 10],
     'GAUS_SIGMA'    : 3.0,
 }
 
