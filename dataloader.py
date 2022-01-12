@@ -68,7 +68,7 @@ def remove_fn(img, label, fn):
     """removes fn as arg to not raise error when training"""
     return img, label
 
-def load_dataset(filenames, load_fn=False, ordered=False):
+def load_dataset(filenames, load_fn=False, ordered=False, off_aug=False):
     """
     takes list of .tfrec files, read using TFRecordDataset,
     parse and decode using read_tfrecord func,
@@ -81,7 +81,10 @@ def load_dataset(filenames, load_fn=False, ordered=False):
         ignore_order.experimental_deterministic = False
     dataset = tf.data.TFRecordDataset(filenames, num_parallel_reads=AUTOTUNE)
     dataset = dataset.with_options(ignore_order)
-    dataset = dataset.map(read_tfrecord, num_parallel_calls=AUTOTUNE)
+    if off_aug:
+        dataset = dataset.map(read_aug_tfrecord, num_parallel_calls=AUTOTUNE)
+    else:
+        dataset = dataset.map(read_tfrecord, num_parallel_calls=AUTOTUNE)
     if not load_fn:
         dataset = dataset.map(remove_fn, num_parallel_calls=AUTOTUNE)
     return dataset
@@ -89,7 +92,7 @@ def load_dataset(filenames, load_fn=False, ordered=False):
 
     
 
-def get_training_dataset(files, augment=True, shuffle=True, ordered=False):
+def get_training_dataset(files, off_aug=False, on_aug=True, shuffle=True, ordered=False):
     """
     train:
         - load_fn = 0
@@ -100,9 +103,9 @@ def get_training_dataset(files, augment=True, shuffle=True, ordered=False):
     augment only on train_ds
     shuffle before batch
     """
-    dataset = load_dataset(files, ordered=ordered)  # [900,900]
+    dataset = load_dataset(files, ordered=ordered, off_aug=off_aug)  # [900,900]
     dataset = dataset.map(reduce_res, num_parallel_calls=AUTOTUNE)  # [640,640]
-    if augment: dataset = dataset.map(data_augment)
+    if on_aug: dataset = dataset.map(data_augment)
     dataset = dataset.repeat()
     if shuffle: dataset = dataset.shuffle(tr_cfg['SHUFFLE_BUFFER'])  # 2000
     dataset = dataset.batch(tr_cfg['BATCH_SIZE'])

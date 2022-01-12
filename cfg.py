@@ -55,6 +55,9 @@ tr_cfg = {
     'ROT_RANGE'     : [-10, 10],  # None, activates fine rotate with min and max ANGLE
     'SHEAR_RANGE'   : [-10, 10],
     'GAUS_SIGMA'    : 3.0,
+
+    # offline augs
+    'OFF_FILTER'    : 'elee',
 }
 
 

@@ -164,6 +164,52 @@ def data_augment(image, label):
     return image, label
 
 
+
+
+
+def decode_image(feature):
+    image = tf.io.parse_tensor(feature, tf.uint8)
+    image = tf.cast(image, tf.float32)/255.0
+    return image
+
+def read_aug_tfrecord(feature):
+    """
+        from offline augmented dataset, select an image to process randomly
+        TODO: control list of augmented feature names from cfg dictionary
+    """
+    AUG_TFREC_FORMAT = {
+        'image': tf.io.FixedLenFeature([], tf.string),
+        'image3': tf.io.FixedLenFeature([], tf.string),
+        'image5': tf.io.FixedLenFeature([], tf.string),
+        'image7': tf.io.FixedLenFeature([], tf.string),
+        'label': tf.io.FixedLenFeature([], tf.string),
+        'fn': tf.io.FixedLenFeature([], tf.string)
+    }
+
+    features = tf.io.parse_single_example(feature, AUG_TFREC_FORMAT)
+
+    # take a filtered image with a random filter strength
+    p_filter = tf.random.uniform([], 0, 1.0, dtype=tf.float32)
+    if p_filter > .75:
+        image = decode_image(features["image3"])
+    if p_filter > .5:
+        image = decode_image(features["image5"])
+    elif p_filter > .25:
+        image = decode_image(features["image7"])
+    else:
+        image = decode_image(features["image"])
+    
+    fn = features["fn"]
+    label = tf.io.parse_tensor(features["label"], tf.bool)
+    label = tf.cast(label, tf.float32)
+    
+    return image, label, fn
+
+
+
+
+
+
     # if tr_cfg['IS_LIGHT_FILT']:
     #     p_filter = tf.random.uniform([], 0, 1.0, dtype=tf.float32)
     #     if p_filter > .75:
