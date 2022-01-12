@@ -57,6 +57,7 @@ tr_cfg = {
     'GAUS_SIGMA'    : 3.0,
 
     # offline augs
+    'OFF_AUG'       : 0,
     'OFF_FILTER'    : 'elee',
 }
 
