@@ -4,3 +4,7 @@ __pycache__
 *.tfrec
 *.csv
 *.h5
+*.geojson
+test
+evaluate
+preds
