@@ -59,6 +59,9 @@ tr_cfg = {
     # offline augs
     'OFF_AUG'       : 0,
     'OFF_FILTER'    : 'elee',
+
+    # albu augs
+    'IS_MOT_BLUR'   : 0,  # call get_transform() each time changing this val
 }
 
 

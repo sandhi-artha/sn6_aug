@@ -6,6 +6,7 @@ import tensorflow_addons as tfa
 print(f'tensorflow_addons version: {tfa.__version__}')
 # from tensorflow.keras import backend as K
 import math
+import albumentations as A
 
 
 
@@ -164,7 +165,23 @@ def data_augment(image, label):
     return image, label
 
 
+def get_transform():
+    # gpu augment options
+    aug_list = []
+    if tr_cfg['IS_MOT_BLUR']:
+        aug_list.append(A.transforms.MotionBlur(blur_limit=15, p=0.5))
 
+    return A.Compose(aug_list)
+
+
+def albu_transform(image, label):
+    aug_data = TRANSFORMS(image=image, mask=label)
+    return aug_data['image'], aug_data['mask']
+
+def aug_albu(image, label):
+    """wrapper to feed numpy format data to TRANSFORMS"""
+    aug_img, aug_mask = tf.numpy_function(func=albu_transform, inp=[image, label], Tout=[tf.float32, tf.float32])
+    return aug_img, aug_mask
 
 
 def decode_image(feature):

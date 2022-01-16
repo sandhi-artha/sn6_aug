@@ -92,7 +92,7 @@ def load_dataset(filenames, off_aug=False, load_fn=False, ordered=False):
 
     
 
-def get_training_dataset(files, on_aug=True, shuffle=True, ordered=False):
+def get_training_dataset(files, on_aug=True, shuffle=True, ordered=False, al_aug=False):
     """
     train:
         - load_fn = 0
@@ -106,6 +106,7 @@ def get_training_dataset(files, on_aug=True, shuffle=True, ordered=False):
     dataset = load_dataset(files, off_aug=tr_cfg['OFF_AUG'], ordered=ordered)  # [900,900]
     dataset = dataset.map(reduce_res, num_parallel_calls=AUTOTUNE)  # [640,640]
     if on_aug: dataset = dataset.map(data_augment)
+    if al_aug: dataset = dataset.map(aug_albu)
     dataset = dataset.repeat()
     if shuffle: dataset = dataset.shuffle(tr_cfg['SHUFFLE_BUFFER'])  # 2000
     dataset = dataset.batch(tr_cfg['BATCH_SIZE'])
