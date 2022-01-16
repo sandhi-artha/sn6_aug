@@ -124,7 +124,7 @@ def get_validation_dataset(files):
     dataset = load_dataset(files)
     dataset = dataset.map(lambda img,label: resize_example(img,label,None,IS_EXT_VAL),
                           num_parallel_calls=AUTOTUNE)
-    dataset = dataset.cache()
+    if IS_TPU: dataset = dataset.cache()
     dataset = dataset.batch(tr_cfg['BATCH_SIZE'])
     dataset = dataset.prefetch(AUTOTUNE)
     
@@ -185,8 +185,7 @@ if __name__=='__main__':
 
     # convert string and other types to bool for faster change
     IS_EXT_VAL = 1 if tr_cfg['VAL_PATH'] == 'base-val-8' else 0
-    IMAGE_CH = len(tr_cfg['SAR_CH'])
-
+    IS_TPU = 1 if tr_cfg['DEVICE'] == 'tpu' else 0
 
 
 

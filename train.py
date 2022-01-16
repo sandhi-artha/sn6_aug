@@ -54,9 +54,9 @@ def train(train_splits, val_splits):
     if IMAGE_CH<4:
         if tr_cfg['VAL_PATH']:
             print('\n'*4)
-            show_predictions(model, VAL_FN, 24, True)
+            show_predictions(model, VAL_FN, 24, shuffle=IS_TPU)  # on gpu, shuffle is expensive
         print('\n'*6, 'training results')
-        show_predictions(model, TRAIN_FN, 24, True)
+        show_predictions(model, TRAIN_FN, 24, shuffle=IS_TPU)
 
     # delete everything to start fresh
     del train_dataset, valid_dataset, model
