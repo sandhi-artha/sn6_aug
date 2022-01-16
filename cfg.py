@@ -23,6 +23,7 @@ tr_cfg = {
     'VAL_SPLITS'    : 'val',  # will only be considered if val path exist and IS_CV=0
     'IS_FP32'       : 0,       # 1 if train or validating on fp32
     'SAR_CH'        : [1], # [0,3,2],      # HH, VV, VH. 0 = all channel
+    'ORIENT'        : 1,
     
     # training cfg
     'DEVICE'        : 'gpu',

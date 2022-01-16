@@ -32,12 +32,12 @@ def get_filenames(split, ds_path, sub_path='', out=False):
     if isinstance(split, list):
         fns = []
         for fold in split:
-            fol_path = os.path.join(ds_path, sub_path, f'{fold}*.tfrec')
+            fol_path = os.path.join(ds_path, sub_path, f'{fold}_o{tr_cfg["ORIENT"]}*.tfrec')
             fold_fns  = tf.io.gfile.glob(fol_path)
             for fn in fold_fns:
                 fns.append(fn)
     else:
-        fol_path = os.path.join(ds_path, sub_path, f'{split}*.tfrec')
+        fol_path = os.path.join(ds_path, sub_path, f'{split}_o{tr_cfg["ORIENT"]}*.tfrec')
         fns  = tf.io.gfile.glob(fol_path)
     
     num_img = count_data_items(fns)
