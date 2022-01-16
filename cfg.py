@@ -62,6 +62,7 @@ tr_cfg = {
     'OFF_FILTER'    : 'elee',
 
     # albu augs
+    'AL_AUG'        : 0,  # toggle for albu augs
     'IS_MOT_BLUR'   : 0,  # call get_transform() each time changing this val
 }
 
