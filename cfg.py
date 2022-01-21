@@ -1,27 +1,26 @@
 dg_cfg = {
     'base_dir'      : '../dataset/spacenet6-challenge/AOI_11_Rotterdam',
-    'out_dir'       : '../dataset/sn6_aug/filter_aug_tfrec',
+    'out_dir'       : '../dataset/sn6_aug/gpu_tfrec',
     'orient'        : 1,
     'resize'        : None,
-    'folds'         : 4,
+    'folds'         : 5,
     'channel'       : [1],
     'tfrec_size'    : 50,
-    'out_precision' : 8,
+    'out_precision' : 32,
 }
 
 tr_cfg = {
     # log cfg
-    'RUN'           : 6,   # REMEMBER TO INCREMENT!!
-    'COMMENTS'      : 'test loss function from scratch',
+    'RUN'           : 1,   # REMEMBER TO INCREMENT!!
+    'COMMENTS'      : 'gpu experiments',
     
     # dataset cfg
     'IMAGE_DIM'     : 900,  # must be the same as tfrecord res
-    'IMAGE_RS'      : 640,
+    'IMAGE_RS'      : 320,
     'TRAIN_PATH'    : 'sn6-900-uint8-o1', #'sn6-900-uint8',  # kaggle ds name
-    'TRAIN_SPLITS'  : ['fold0', 'fold1', 'fold2', 'fold3'],
-    'VAL_PATH'      : None, #'base-val-8',  # if None, don't validate
-    'VAL_SPLITS'    : 'val',  # will only be considered if val path exist and IS_CV=0
-    'IS_FP32'       : 0,       # 1 if train or validating on fp32
+    'TRAIN_SPLITS'  : ['fold0', 'fold1', 'fold2'],
+    'VAL_PATH'      : 'sn6-900-uint8-o1', #'base-val-8',  # if None, don't validate
+    'VAL_SPLITS'    : 'fold4',  # will only be considered if val path exist and IS_CV=0
     'SAR_CH'        : [1], # [0,3,2],      # HH, VV, VH. 0 = all channel
     'ORIENT'        : 1,
     
