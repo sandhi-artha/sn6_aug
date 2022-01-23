@@ -51,3 +51,16 @@ def create_patch(bounds, lw=1, c='r', ax=None):
         ax.add_patch(rect)
     else:
         return rect
+
+def get_data_region_idx(raster):
+    """
+    gets 4 corners of a raster, cutting out large portion of nodata region
+        imperfect, as it still leaves tiny nodata edges due to angle
+    np.argwhere() returns list of index. [[row,col],[row,col]]
+        of every element that gets true condition
+    """
+    bin_mask = raster.read_masks(1)
+    coords = np.argwhere(bin_mask==255)
+    row0,col0 = coords.min(axis=0)  # find lowest row and col
+    row1,col1 = coords.max(axis=0)  # find highest row and col
+    return row0,row1,col0,col1

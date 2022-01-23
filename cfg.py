@@ -17,10 +17,10 @@ tr_cfg = {
     # dataset cfg
     'IMAGE_DIM'     : 900,  # must be the same as tfrecord res
     'IMAGE_RS'      : 320,
-    'TRAIN_PATH'    : 'sn6-900-uint8-o1', #'sn6-900-uint8',  # kaggle ds name
+    'TRAIN_PATH'    : '../dataset/sn6_aug/gpu_tfrec', #'sn6-900-uint8',  # kaggle ds name
     'TRAIN_SPLITS'  : ['fold0', 'fold1', 'fold2'],
-    'VAL_PATH'      : 'sn6-900-uint8-o1', #'base-val-8',  # if None, don't validate
-    'VAL_SPLITS'    : 'fold4',  # will only be considered if val path exist and IS_CV=0
+    'VAL_PATH'      : '../dataset/sn6_aug/gpu_tfrec', #'base-val-8',  # if None, don't validate
+    'VAL_SPLITS'    : ['fold4'],  # will only be considered if val path exist and IS_CV=0
     'SAR_CH'        : [1], # [0,3,2],      # HH, VV, VH. 0 = all channel
     'ORIENT'        : 1,
     
@@ -38,23 +38,24 @@ tr_cfg = {
     'IS_CB_ES'      : 0,   # early stopping
     'IS_CB_LRS'     : 0,   # learning rate scheduler, if false uses lr_ramp
     
-    # augmentations
+    # spatial transformations
     'IS_RESIZE'     : 1,       
     'IS_CROP'       : 0,
     'IS_HFLIP'      : 0,
     'IS_VFLIP'      : 0,
-    'IS_ROT'        : 1,
+    'IS_ROT90'      : 0,
     'IS_FINE_ROT'   : 0,
-    'IS_SHEAR_X'    : 0,
-    'IS_SHEAR_Y'    : 0,
 
-    'IS_F_GAUS'     : 1,
+    # pixel transformations
+    'IS_F_GAUS'     : 0,
     'IS_F_MED'      : 0,
+    'IS_GAUS_NOISE' : 0,
+    'IS_MOT_BLUR'   : 0,
 
     # aug magnitude
     'ROT_RANGE'     : [-10, 10],  # None, activates fine rotate with min and max ANGLE
-    'SHEAR_RANGE'   : [-10, 10],
     'GAUS_SIGMA'    : 3.0,
+    'GAUS_NOISE_VAR': [10.0, 50.0],
 
     # offline augs
     'OFF_AUG'       : 0,
