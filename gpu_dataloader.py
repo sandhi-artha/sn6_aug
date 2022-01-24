@@ -164,3 +164,4 @@ TFREC_FORMAT = {
 
 AUTOTUNE = tf.data.experimental.AUTOTUNE
 IMAGE_CH = len(tr_cfg['SAR_CH'])
+IS_TPU = 1 if tr_cfg['DEVICE'] == 'tpu' else 0
