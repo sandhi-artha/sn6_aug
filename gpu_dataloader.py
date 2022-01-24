@@ -1,13 +1,13 @@
 import os
 import re    # count tfrec
-# import gc    # deleting stuff
-# import json
+import gc    # deleting stuff
+import json
 import yaml
 
 import numpy as np
 import tensorflow as tf
-# import wandb
-# from wandb.keras import WandbCallback
+import wandb
+from wandb.keras import WandbCallback
 
 
 
@@ -20,13 +20,13 @@ def count_data_items(filenames):
     
     return np.sum(n)
 
-def get_filenames(cfg, sub_path='', out=False):
+def get_filenames(cfg, base_dir, out=False):
     """
     fold_list : list of str of each fold
     """
     fns = []
     for fold in cfg['TRAIN_SPLITS']:
-        fol_path = os.path.join(cfg['TRAIN_PATH'], sub_path, f'{fold}_o{cfg["ORIENT"]}*.tfrec')
+        fol_path = os.path.join(base_dir, cfg['TRAIN_PATH'], f'{fold}_o{cfg["ORIENT"]}*.tfrec')
         fold_fns  = tf.io.gfile.glob(fol_path)
         for fn in fold_fns:
             fns.append(fn)
