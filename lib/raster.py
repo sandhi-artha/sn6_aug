@@ -125,6 +125,6 @@ def get_data_region_idx(raster, thresh=300):
             c1 = c1_bot + c0_cr
 
     assert r1-r0 > thresh, 'row less than thresh'
-    assert c0-c1 > thresh, 'col less than thresh'
+    assert c1-c0 > thresh, 'col less than thresh'
 
     return r0,r1,c0,c1
