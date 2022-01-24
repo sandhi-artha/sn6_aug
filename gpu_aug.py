@@ -65,11 +65,12 @@ def val_reduce_res_transform(image, label):
     transform_data = VAL_REDUCE_RES_TRANSFORMS(image=image, mask=label)
     return transform_data['image'], transform_data['mask']
 
-def val_reduce_res_albu(image, label):
+def val_reduce_res_albu(image, label, fn=None):
     """wrapper to feed numpy format data to TRANSFORMS"""
     aug_img, aug_mask = tf.numpy_function(
         func=val_reduce_res_transform, inp=[image, label], Tout=[tf.float32, tf.float32])
-    return aug_img, aug_mask
+    if fn is None: return aug_img, aug_mask
+    else         : return aug_img, aug_mask, fn
 
 
 
