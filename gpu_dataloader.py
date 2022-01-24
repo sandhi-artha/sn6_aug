@@ -20,22 +20,22 @@ def count_data_items(filenames):
     
     return np.sum(n)
 
-def get_filenames(cfg, base_dir, out=False):
+def get_filenames(split, ds_path, sub_path='', out=False):
     """
     fold_list : list of str of each fold
     """
     fns = []
-    for fold in cfg['TRAIN_SPLITS']:
-        fol_path = os.path.join(base_dir, cfg['TRAIN_PATH'], f'{fold}_o{cfg["ORIENT"]}*.tfrec')
+    for fold in split:
+        fol_path = os.path.join(ds_path, sub_path, f'{fold}_o{tr_cfg["ORIENT"]}*.tfrec')
         fold_fns  = tf.io.gfile.glob(fol_path)
         for fn in fold_fns:
             fns.append(fn)
     
     num_img = count_data_items(fns)
-    steps = num_img//cfg['BATCH_SIZE']
+    steps = num_img//tr_cfg['BATCH_SIZE']
 
     if out:
-        print(f'{cfg["TRAIN_SPLITS"]} files: {len(fns)} with {num_img} images')
+        print(f'{split} files: {len(fns)} with {num_img} images')
     
     return fns, steps
 

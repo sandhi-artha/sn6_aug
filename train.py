@@ -6,11 +6,14 @@ def train(train_splits, val_splits):
     K.clear_session()
     
     # get filenames and load dataset
-    TRAIN_FN, TRAIN_STEPS = get_filenames(tr_cfg, BASE_DIR, out=True)
+    train_paths = KaggleDatasets().get_gcs_path(tr_cfg['TRAIN_PATH'])
+    TRAIN_FN, TRAIN_STEPS = get_filenames(train_splits,
+                                          train_paths, SUB_PATH_TRAIN)
     train_dataset = get_training_dataset(TRAIN_FN)                                                         
 
     if tr_cfg['VAL_PATH']:
-        VAL_FN, VAL_STEPS = get_filenames(tr_cfg, BASE_DIR, out=True)
+        val_paths = KaggleDatasets().get_gcs_path(tr_cfg['VAL_PATH'])
+        VAL_FN, VAL_STEPS = get_filenames(val_splits, val_paths, SUB_PATH_VAL)
         valid_dataset = get_validation_dataset(VAL_FN)
     else:
         valid_dataset = VAL_STEPS = None
