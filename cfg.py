@@ -38,9 +38,12 @@ tr_cfg = {
     'IS_CB_ES'      : 0,   # early stopping
     'IS_CB_LRS'     : 0,   # learning rate scheduler, if false uses lr_ramp
     
-    # spatial transformations
+    # reduce_resize
     'IS_RESIZE'     : 1,       
     'IS_CROP'       : 0,
+    'IS_RESIZE_CROP': 0,
+
+    # spatial transformations
     'IS_HFLIP'      : 0,
     'IS_VFLIP'      : 0,
     'IS_ROT90'      : 0,

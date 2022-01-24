@@ -9,10 +9,6 @@ import tensorflow as tf
 # import wandb
 # from wandb.keras import WandbCallback
 
-from gpu_aug import reduce_res, resize_example, aug_albu
-# read raster
-# read label
-# reduce_res
 
 
 
@@ -43,15 +39,7 @@ def get_filenames(cfg, sub_path='', out=False):
     
     return fns, steps
 
-TFREC_FORMAT = {
-    'image': tf.io.FixedLenFeature([], tf.string),
-    'label': tf.io.FixedLenFeature([], tf.string),
-    'data_idx': tf.io.VarLenFeature(tf.int64),
-    'fn': tf.io.FixedLenFeature([], tf.string),
-    'orient': tf.io.FixedLenFeature([], tf.int64),
-}
 
-AUTOTUNE = tf.data.experimental.AUTOTUNE
 
 def read_tfrecord(feature):
     """data_idx is [r0,r1,c0,c1]
@@ -61,15 +49,27 @@ def read_tfrecord(feature):
     label = tf.io.parse_tensor(features["label"], tf.bool)
     label = tf.cast(label, tf.float32)
 
-    meta = {}
-    meta['fn'] = features["fn"]
-    meta['data_idx'] = tf.sparse.to_dense(features["data_idx"])
-    meta['orient'] = features["orient"]
+    data_idx = tf.sparse.to_dense(features["data_idx"])
+    h = data_idx[1] - data_idx[0]
+    w = data_idx[3] - data_idx[2]
     
-    return image, label, meta
+    image = tf.reshape(image, [h, w, IMAGE_CH])
+    label = tf.reshape(label, [h, w, 1])
+
+    # meta = {}
+    # meta['fn'] = features["fn"]
+    # meta['data_idx'] = tf.sparse.to_dense(features["data_idx"])
+    # meta['orient'] = features["orient"]
+    fn = features['fn']
+
+    return image, label, fn#, meta
 
 
-def load_dataset(filenames, ordered=False):
+def remove_fn(img, label, fn):
+    """removes meta as arg to not raise error when training"""
+    return img, label
+
+def load_dataset(filenames, load_fn=False, ordered=False):
     """
     takes list of .tfrec files, read using TFRecordDataset,
     parse and decode using read_tfrecord func,
@@ -82,19 +82,12 @@ def load_dataset(filenames, ordered=False):
     dataset = tf.data.TFRecordDataset(filenames, num_parallel_reads=AUTOTUNE)
     dataset = dataset.with_options(options)
     dataset = dataset.map(read_tfrecord, num_parallel_calls=AUTOTUNE)
+    if not load_fn:
+        dataset = dataset.map(remove_fn, num_parallel_calls=AUTOTUNE)
     return dataset
-
-
-def return_data(image, label, meta):
-    """use only image and label as arg for training"""
-    return image, label
     
 
-def get_training_dataset(
-    files, cfg,
-    on_aug=True,
-    shuffle=True,
-    ordered=False):
+def get_training_dataset(files, on_aug=True, shuffle=True, ordered=False):
     """
     train:
         - load_fn = 0
@@ -106,17 +99,16 @@ def get_training_dataset(
     shuffle before batch
     """
     dataset = load_dataset(files, ordered=ordered)  # [900,900]
-    dataset = dataset.map(reduce_res, num_parallel_calls=AUTOTUNE)  # [320,320]
-    dataset = dataset.map(return_data, num_parallel_calls=AUTOTUNE)
+    dataset = dataset.map(reduce_res_albu, num_parallel_calls=AUTOTUNE)  # [320,320]
     if on_aug: dataset = dataset.map(aug_albu)
     dataset = dataset.repeat()
-    if shuffle: dataset = dataset.shuffle(cfg['SHUFFLE_BUFFER'])  # 2000
-    dataset = dataset.batch(cfg['BATCH_SIZE'])
+    if shuffle: dataset = dataset.shuffle(tr_cfg['SHUFFLE_BUFFER'])  # 2000
+    dataset = dataset.batch(tr_cfg['BATCH_SIZE'])
     dataset = dataset.prefetch(AUTOTUNE)
     
     return dataset
 
-def get_validation_dataset(files, cfg, cache=False):
+def get_validation_dataset(files, cache=False):
     """
     val:
         - load_fn = 0
@@ -124,10 +116,9 @@ def get_validation_dataset(files, cfg, cache=False):
         - resize only
     """
     dataset = load_dataset(files)
-    dataset = dataset.map(return_data, num_parallel_calls=AUTOTUNE)
-    dataset = dataset.map(resize_example, num_parallel_calls=AUTOTUNE)
+    dataset = dataset.map(val_reduce_res_albu, num_parallel_calls=AUTOTUNE)
     if cache: dataset = dataset.cache()
-    dataset = dataset.batch(cfg['BATCH_SIZE'])
+    dataset = dataset.batch(tr_cfg['BATCH_SIZE'])
     dataset = dataset.prefetch(AUTOTUNE)
     
     return dataset
@@ -139,9 +130,8 @@ def get_preview_dataset(files, n_show, shuffle=False):
         - resize only
     """
     dataset = load_dataset(files, load_fn=1, ordered=1)
-    dataset = dataset.map(lambda img,label,fn: resize_example(img,label,fn,IS_EXT_VAL),
-                          num_parallel_calls=AUTOTUNE)
-    if shuffle: dataset = dataset.shuffle(250)
+    dataset = dataset.map(val_reduce_res_albu, num_parallel_calls=AUTOTUNE)
+    if shuffle: dataset = dataset.shuffle(tr_cfg['SHUFFLE_BUFFER'])
     dataset = dataset.batch(n_show)
     return dataset
 
@@ -160,3 +150,17 @@ def get_config_wandb(run_path):
             cfg[key] = cfg_y[key]['value']
     
     return cfg
+
+
+
+# Global variables
+TFREC_FORMAT = {
+    'image': tf.io.FixedLenFeature([], tf.string),
+    'label': tf.io.FixedLenFeature([], tf.string),
+    'data_idx': tf.io.VarLenFeature(tf.int64),
+    'fn': tf.io.FixedLenFeature([], tf.string),
+    'orient': tf.io.FixedLenFeature([], tf.int64),
+}
+
+AUTOTUNE = tf.data.experimental.AUTOTUNE
+IMAGE_CH = len(tr_cfg['SAR_CH'])
