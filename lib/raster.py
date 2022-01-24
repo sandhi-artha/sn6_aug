@@ -52,7 +52,7 @@ def create_patch(bounds, lw=1, c='r', ax=None):
     else:
         return rect
 
-def get_region_index(raster, thresh=300):
+def get_data_region_idx(raster, thresh=300):
     """
     leaves nodata trails in the edges
     np.argwhere() returns list of index. [[row,col],[row,col]]
