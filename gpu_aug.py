@@ -40,7 +40,8 @@ def get_reduce_res_transforms(
     if resize_crop:
         reduce_res_list.append(
             A.augmentations.crops.transforms.RandomResizedCrop(
-                320,320,scale=(0.3,0.7),ratio=(1.0,1.0),interpolation=INTER,p=1.0)
+                # 320,320,scale=(0.3,0.7),ratio=(1.0,1.0),interpolation=INTER,p=1.0)
+                320,320,scale=(1.0,1.0),ratio=(1.0,1.0),interpolation=INTER,p=1.0)
         )
 
     reduce_res = [A.OneOf(reduce_res_list, p=1.0)]
@@ -125,7 +126,7 @@ def aug_albu(image, label):
 
 
 # Global Variables
-INTER = cv2.INTER_NEAREST
+INTER = cv2.INTER_LINEAR # cv2.INTER_NEAREST
 BORDER = cv2.BORDER_REFLECT
 TRANSFORMS = get_aug_transforms()
 REDUCE_RES_TRANSFORMS = get_reduce_res_transforms()  # should use from tr_cfg
