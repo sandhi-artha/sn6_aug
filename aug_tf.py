@@ -51,8 +51,8 @@ def random_crop_resize(image, label):
     return resize(cropped_image[:,:,:IMAGE_CH], cropped_image[:,:,-1:])
 
 def get_reduce_res_func(
-    is_resize=1,
-    is_pad_resize=0,
+    is_resize=0,
+    is_pad_resize=1,
     is_crop=0,
     is_crop_resize=0
 ):
@@ -76,7 +76,31 @@ def get_reduce_res_func(
     else:
         raise ValueError('must provide reduce_res function')
 
+def get_val_reduce_res_func(
+    is_resize=0,
+    is_pad_resize=1,
+    is_crop=0,
+    is_crop_resize=0
+):
+    """acts as a function selector and also updates the cfg
+    returns a tf function that reduces resolution. does OneOf ops"""
+    if (is_resize+is_pad_resize+is_crop+is_crop_resize)>1:
+        raise ValueError('can only do 1 reduce resize ops')
 
+    if is_resize:
+        tr_cfg['VAL_REDUCE_RES'] = 'resize'
+        return resize
+    elif is_pad_resize:
+        tr_cfg['VAL_REDUCE_RES'] = 'pad_resize'
+        return pad_resize
+    elif is_crop:
+        tr_cfg['VAL_REDUCE_RES'] = 'crop'
+        return random_crop
+    elif is_crop_resize:
+        tr_cfg['VAL_REDUCE_RES'] = 'crop_resize'
+        return random_crop_resize
+    else:
+        raise ValueError('must provide reduce_res function')
 
 
 ### AUGMENTATION FUNCTION ###

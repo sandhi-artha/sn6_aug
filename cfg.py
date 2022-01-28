@@ -18,7 +18,7 @@ tr_cfg = {
     'IMAGE_DIM'     : 900,  # must be the same as tfrecord res
     'IMAGE_RS'      : 320,
     'TRAIN_PATH'    : '../dataset/sn6_aug/gpu_tfrec', #'sn6-900-uint8',  # kaggle ds name
-    'TRAIN_SPLITS'  : ['fold0', 'fold1', 'fold2'],
+    'TRAIN_SPLITS'  : ['fold0', 'fold1'],
     'VAL_PATH'      : '../dataset/sn6_aug/gpu_tfrec', #'base-val-8',  # if None, don't validate
     'VAL_SPLITS'    : ['fold4'],  # will only be considered if val path exist and IS_CV=0
     'SAR_CH'        : [1], # [0,3,2],      # HH, VV, VH. 0 = all channel
@@ -29,7 +29,7 @@ tr_cfg = {
     'SEED'          : 17,
     'BACKBONE'      : 'effb4',            # 'effb4', 'res50'
     'ARC'           : 'fpn',              # 'unet', 'fpn'
-    'WEIGHT'        : 'imagenet',         # 'imagenet', 'pre-trained from:..', None
+    'WEIGHT'        : None,         # 'imagenet', 'pre-trained from:..', None
     'LF'            : 'dice',    # 'bce', 'jaccard_distance', 'focal', 'giou'
     'EPOCHS'        : 60,
     'L_RATE'        : 4e-4,       # 32e-4, 4e-4, 5e-5
@@ -39,34 +39,31 @@ tr_cfg = {
     'IS_CB_LRS'     : 0,   # learning rate scheduler, if false uses lr_ramp
     
     # reduce_resize
-    'IS_RESIZE'     : 1,       
-    'IS_CROP'       : 0,
-    'IS_RESIZE_CROP': 0,
+    'REDUCE_RES'    : 'pad_resize',
+    'VAL_REDUCE_RES': 'pad_resize',
 
     # spatial transformations
     'IS_HFLIP'      : 0,
     'IS_VFLIP'      : 0,
     'IS_ROT90'      : 0,
     'IS_FINE_ROT'   : 0,
-
-    # pixel transformations
-    'IS_F_GAUS'     : 0,
-    'IS_F_MED'      : 0,
-    'IS_GAUS_NOISE' : 0,
-    'IS_MOT_BLUR'   : 0,
+    'IS_SHEAR_X'    : 0,
+    'IS_SHEAR_Y'    : 0,
 
     # aug magnitude
-    'ROT_RANGE'     : [-10, 10],  # None, activates fine rotate with min and max ANGLE
-    'GAUS_SIGMA'    : 3.0,
-    'GAUS_NOISE_VAR': [10.0, 50.0],
+    'ROT_RANGE'     : [-10, 10],
+    'SHEAR_RANGE'   : [-10, 10],
+
+    # pixel transformations
+    'IS_MOT_BLUR'   : 0,
+    'IS_SHARPEN'    : 0,
+    'IS_CLAHE'      : 0,
+    'IS_GAUS_NOISE' : 0,
+    'IS_SPECKLE_NOISE': 0,
+    'IS_COARSE_DO'  : 0,
 
     # offline augs
-    'OFF_AUG'       : 0,
-    'OFF_FILTER'    : 'elee',
-
-    # albu augs
-    'AL_AUG'        : 0,  # toggle for albu augs
-    'IS_MOT_BLUR'   : 0,  # call get_transform() each time changing this val
+    'OFF_DS'        : '',
 }
 
 
