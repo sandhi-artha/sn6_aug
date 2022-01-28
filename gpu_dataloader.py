@@ -78,7 +78,7 @@ def read_tfrecord(feature):
     rescale image to have max val of 1.0
     """
     features = tf.io.parse_single_example(feature, TFREC_FORMAT)
-    if tr_cfg['OFF_AUG']:
+    if IS_OFF_AUG:
         image = off_aug_selector(features)
     else:
         image = tf.io.parse_tensor(features["image"], tf.float32)
