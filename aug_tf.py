@@ -1,4 +1,5 @@
 import tensorflow as tf
+import tensorflow_addons as tfa
 import math
 
 ### GLOBAL VARIABLES ###
@@ -32,7 +33,7 @@ def random_crop_resize(image, label):
     """does 2 ops
     1. random crop with random scale as percentage from minimum length
     2. resize the patch to size IMAGE_RS"""
-    scale = tf.random.uniform([], 0.5, 1.0, dtype=tf.float32)
+    scale = tf.random.uniform([], 0.7, 1.0, dtype=tf.float32)
     # identify smallest edge
     image_shape = image.get_shape()  # so I can get dims
     if image_shape.ndims == 3:
@@ -134,11 +135,17 @@ def aug_tf(image, label):
             label = tf.image.rot90(label, k=1) # rotate 90º
 
     if tr_cfg['IS_FINE_ROT']:
-        min_rad = tr_cfg['ROT_RANGE'][0] * math.pi / 180
-        max_rad = tr_cfg['ROT_RANGE'][1] * math.pi / 180
-        rot = tf.random.uniform([], min_rad, max_rad, dtype=tf.float32)
-        image = tfa.image.rotate(image, rot)
-        label = tfa.image.rotate(label, rot)
+        p_rotate = tf.random.uniform([], 0, 1.0, dtype=tf.float32)
+        if p_rotate > .5:
+            min_rad = tr_cfg['ROT_RANGE'][0] * math.pi / 180
+            max_rad = tr_cfg['ROT_RANGE'][1] * math.pi / 180
+            rot = tf.random.uniform([], min_rad, max_rad, dtype=tf.float32)
+            if tr_cfg['ROT_REFLECT']:
+                image = tfa.image.rotate(image, rot, interpolation='bilinear', fill_mode='reflect')
+                label = tfa.image.rotate(label, rot, interpolation='bilinear', fill_mode='reflect')
+            else:
+                image = tfa.image.rotate(image, rot)
+                label = tfa.image.rotate(label, rot)
 
 
     # Shear
@@ -183,6 +190,7 @@ def update_aug_tf(
     is_shear_x=0,
     is_shear_y=0,
     rot_range=[-10,10],
+    rot_reflect=0,
     shear_range=[-10,10]
 ):
     """configure augmentations from tf"""
@@ -193,6 +201,7 @@ def update_aug_tf(
     tr_cfg['IS_SHEAR_X'] = is_shear_x
     tr_cfg['IS_SHEAR_Y'] = is_shear_y
     tr_cfg['ROT_RANGE'] = rot_range
+    tr_cfg['ROT_REFLECT'] = rot_reflect
     tr_cfg['SHEAR_RANGE'] = shear_range
     
     # toggle the map function in dataloader
@@ -200,6 +209,8 @@ def update_aug_tf(
         IS_AUG_TF = 1
     else:
         IS_AUG_TF = 0
+    
+    return IS_AUG_TF
         
 def update_aug_off(
     is_elee=0,
@@ -224,7 +235,7 @@ def update_aug_off(
         SUB_PATH_TRAIN = ''
         SUB_PATH_VAL = ''
 
-
+    return IS_OFF_AUG
 
 
 

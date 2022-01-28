@@ -66,7 +66,7 @@ def get_aug_albu_func(
     else:
         IS_AUG_ALBU = 0
 
-    return A.Compose(transforms_list)
+    return A.Compose(transforms_list), IS_AUG_ALBU
 
 def aug_transform(image, label):
     """spatial transformation done on both image and label
