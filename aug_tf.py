@@ -204,8 +204,23 @@ def update_aug_tf(
     tr_cfg['ROT_REFLECT'] = rot_reflect
     tr_cfg['SHEAR_RANGE'] = shear_range
     
+    logs = []
+    if is_hflip:
+        logs.append('hflip')
+    if is_vflip:
+        logs.append('vflip')
+    if is_rot90:
+        logs.append('rot90')
+    if is_fine_rot:
+        logs.append(f'fine_rot: [{rot_range[0]},{rot_range[0]}]')
+    if is_shear_x:
+        logs.append(f'shear_x: [{shear_range[0]},{shear_range[0]}]')
+    if is_shear_y:
+        logs.append(f'shear_y: [{shear_range[0]},{shear_range[0]}]')
+    print(f'active aug tf: {logs}')
+
     # toggle the map function in dataloader
-    if (is_hflip+is_vflip+is_rot90+is_fine_rot+is_shear_x+is_shear_y)>0:
+    if len(logs)>0:
         IS_AUG_TF = 1
     else:
         IS_AUG_TF = 0
