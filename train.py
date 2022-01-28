@@ -54,9 +54,9 @@ def train(train_splits, val_splits):
     if IMAGE_CH<4:
         if tr_cfg['VAL_PATH']:
             print('\n'*4)
-            show_predictions(model, VAL_FN, N_VAL_PREV, shuffle=IS_TPU)  # on gpu, shuffle is expensive
+            show_predictions(model, VAL_FN, N_VAL_PREV)  # on gpu, shuffle is expensive
         print('\n'*6, 'training results')
-        show_predictions(model, TRAIN_FN, N_VAL_PREV, shuffle=IS_TPU)
+        show_predictions(model, TRAIN_FN, N_VAL_PREV)
 
     # delete everything to start fresh
     del train_dataset, valid_dataset, model
@@ -87,14 +87,18 @@ def display_img(display_list):
     plt.tight_layout()
     plt.show()
 
-def show_predictions(model, ds_fn, n_show=4, shuffle=False, num_pass=0):
+def show_predictions(model, ds_fn, n_show=4, num_pass=0):
     """ create new dataset, shuffle(250), batch(n_show), predict and display with fn
     """
-    dataset = get_preview_dataset(ds_fn, n_show, shuffle)
+    dataset = tf.data.TFRecordDataset(ds_fn, num_parallel_reads=AUTOTUNE)
+    dataset = dataset.map(read_tfrecord, num_parallel_calls=AUTOTUNE)
+    # dataset = get_preview_dataset(ds_fn, n_show, shuffle)
     
-    for img,mask,fn in dataset.skip(num_pass).take(1):
+    for img,mask,fn in dataset.skip(num_pass).take(n_show):
+        img = tf.expand_dims(img, axis=0)
+        mask = tf.expand_dims(mask, axis=0)
+        img, mask = VAL_REDUCE_RES(img, mask)
         pred_mask = model(img)
         pred_mask = create_binary_mask(pred_mask)
-        for i in range(n_show):
-            print(fn[i].numpy().decode())
-            display_img([img[i], mask[i], pred_mask[i]])
+        print(fn.numpy().decode())
+        display_img([img[0], mask[0], pred_mask[0]])
