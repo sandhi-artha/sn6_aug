@@ -38,7 +38,7 @@ def random_crop_resize(image, label):
     image_shape = image.get_shape()  # so I can get dims
     if image_shape.ndims == 3:
         less_edge = tf.math.reduce_min(tf.shape(image)[:2])
-    if image_shape.dims == 4:
+    if image_shape.ndims == 4:
         less_edge = tf.math.reduce_min(tf.shape(image)[1:3])
 
     # random crop
@@ -212,11 +212,11 @@ def update_aug_tf(
     if is_rot90:
         logs.append('rot90')
     if is_fine_rot:
-        logs.append(f'fine_rot: [{rot_range[0]},{rot_range[0]}]')
+        logs.append(f'fine_rot: [{rot_range[0]},{rot_range[1]}]')
     if is_shear_x:
-        logs.append(f'shear_x: [{shear_range[0]},{shear_range[0]}]')
+        logs.append(f'shear_x: [{shear_range[0]},{shear_range[1]}]')
     if is_shear_y:
-        logs.append(f'shear_y: [{shear_range[0]},{shear_range[0]}]')
+        logs.append(f'shear_y: [{shear_range[0]},{shear_range[1]}]')
     print(f'active aug tf: {logs}')
 
     # toggle the map function in dataloader
