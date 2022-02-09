@@ -24,8 +24,8 @@ slc_cfg = {
     'resize'        : None,
     'folds'         : 1,
     'channel'       : [1],
-    'tfrec_size'    : 100,
-    'out_precision' : 8,
+    'tfrec_size'    : 50,
+    'out_precision' : 32,
 }
 
 
