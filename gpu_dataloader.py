@@ -61,13 +61,13 @@ def off_aug_selector(features):
     # take a filtered image with a random filter strength
     p_filter = tf.random.uniform([], 0, 1.0, dtype=tf.float32)
     if p_filter > .75:
-        image = tf.io.parse_tensor(features["image3"])
+        image = tf.io.parse_tensor(features["image3"], tf.float32)
     elif p_filter > .5:
-        image = tf.io.parse_tensor(features["image5"])
+        image = tf.io.parse_tensor(features["image5"], tf.float32)
     elif p_filter > .25:
-        image = tf.io.parse_tensor(features["image7"])
+        image = tf.io.parse_tensor(features["image7"], tf.float32)
     else:
-        image = tf.io.parse_tensor(features["image"])
+        image = tf.io.parse_tensor(features["image"], tf.float32)
     return image
 
 def read_tfrecord(feature):
@@ -156,6 +156,16 @@ def get_validation_dataset(files):
     dataset = dataset.prefetch(AUTOTUNE)
     
     return dataset
+
+def pass_reduce(image, label, fn):
+    image, label = VAL_REDUCE_RES(image, label)
+    return image, label, fn
+
+def get_preview_dataset(files):
+    dataset = json.load(files, load_fn=True, ordered=True)
+    dataset = dataset.map(pass_reduce, num_parallel_calls=AUTOTUNE)
+    data = dataset.map(remove_fn).batch(tr_cfg['BATCH_SIZE'])
+    return dataset, data
 
 def get_preview_dataset(files, n_show, shuffle=False):
     """

@@ -8,39 +8,43 @@ BASE_IN_PATH
     gmap
 """
 import os
+import pickle
 
 import numpy as np
 import tensorflow as tf
-from PIL import Image
+from scipy.io import loadmat
 
 from cfg import dg_cfg
-from datagen import get_image, get_label, serialize_image, serialize_label
-from datagen import get_fp_orient, get_fps_folds, _bytes_feature
+from gpu_datagen import get_image_label, serialize_image, serialize_label
+from gpu_datagen import add_base_path
+from gpu_datagen import _int64_feature, _bytes_feature
 
 
 def get_serialize_aug_image(raster_path, in_aug_path):
     """
         returns a list of aug filter images,
             shape: 900,900,1
-            dtype: uint8
+            dtype: .mat single (fp32)
     """
     fn = os.path.basename(raster_path)  # take basename since they're same for all augs
-    fn = fn.replace('.tif','.png')  # augs are in .png
+    fn = '_'.join(fn.split('_')[-4:])
+    fn = fn.replace('.tif','.mat')  # augs are in .mat
     ser_aug_images = []
 
     for w in WIN_LIST:
         fp = os.path.join(in_aug_path, str(w), fn)
-        # read image to np array
-        image_aug = np.array(Image.open(fp))
+        # read image from .mat to np array
+        mat = loadmat(fp)
+        image_aug = mat['sar_res']  # np.arr fp32
         image_aug = np.expand_dims(image_aug, axis=-1)
         # serialize image
-        image_aug_tensor = tf.constant(image_aug, dtype=tf.uint8)
+        image_aug_tensor = tf.constant(image_aug, dtype=tf.float32)
         ser_aug_images.append(tf.io.serialize_tensor(image_aug_tensor))
 
     return ser_aug_images
 
 
-def create_aug_tfrecord(raster_paths, cfg, base_fn, in_aug_path):
+def create_aug_tfrecord(raster_paths, cfg, base_fn, orient, in_aug_path):
     """
     100 images per tfrecord
     image in float32 serialized
@@ -61,13 +65,13 @@ def create_aug_tfrecord(raster_paths, cfg, base_fn, in_aug_path):
         with tf.io.TFRecordWriter(fn) as writer:
             for j in range(size2):
                 idx = i*size+j  # ith tfrec * num_img per tfrec as the start of this iteration
-                image = get_image(raster_paths[idx], cfg['channel'])
+                image, mask, data_region_idx = get_image_label(
+                    raster_paths[idx], cfg['channel'])
+
                 image_serial = serialize_image(image, cfg['out_precision'])
+                label_serial = serialize_label(mask)
 
                 image_augs = get_serialize_aug_image(raster_paths[idx], in_aug_path)
-
-                label = get_label(raster_paths[idx])
-                label_serial = serialize_label(label)
 
                 fn = os.path.basename(raster_paths[idx]).split('.')[0]
 
@@ -77,37 +81,44 @@ def create_aug_tfrecord(raster_paths, cfg, base_fn, in_aug_path):
                     'image5': _bytes_feature(image_augs[1].numpy()),
                     'image7': _bytes_feature(image_augs[2].numpy()),
                     'label': _bytes_feature(label_serial.numpy()),
-                    'fn' : _bytes_feature(tf.compat.as_bytes(fn))
+                    'data_idx': _int64_feature(data_region_idx),
+                    'fn' : _bytes_feature(tf.compat.as_bytes(fn)),
+                    'orient': _int64_feature([orient]),
                 }
 
                 # write tfrecords
                 example = tf.train.Example(features=tf.train.Features(feature=feature))
                 writer.write(example.SerializeToString())
 
-
-
 if __name__=='__main__':
-    BASE_IN_PATH = '../dataset/sn6_aug/filter'
+    BASE_IN_PATH = '../dataset/sn6_aug/filter_crop'
+    BASE_OUT_PATH = '../dataset/sn6_aug/filter_crop_tfrec'
 
     FILT_LIST = ['elee', 'frost', 'gmap']
     WIN_LIST = [3,5,7]
+    ORIENT = 1
 
-    fps = get_fp_orient(dg_cfg['base_dir'], dg_cfg['orient'])
-    idxs_folds = get_fps_folds(fps, dg_cfg['folds'])
+    take_folds = [0,1,4]  # only create tfrec for these folds
+
+    # get new filenames
+    with open(f'fps{ORIENT}_5folds.pickle', 'rb') as f:
+        fns_folds = pickle.load(f)
+
+    fps_folds = add_base_path(fns_folds)
 
     # create 1 tfrecord dataset for each filter
     for filt in FILT_LIST:
-
-        ds_out_dir = os.path.join(dg_cfg['out_dir'], filt)
+        ds_out_dir = os.path.join(BASE_OUT_PATH, filt)
         if not os.path.isdir(ds_out_dir):
             os.makedirs(ds_out_dir)
 
         # create folds so it match prev version
-        for i, idxs_fold in enumerate(idxs_folds):
+        for i in take_folds:
             print(f'creating tfrecords for fold {i}')
-            fps_fold = [fps[idx[0]] for idx in idxs_fold]
-            out_path = os.path.join(ds_out_dir, f'fold{i}')
-            
+            out_path = os.path.join(BASE_OUT_PATH, filt, f'fold{i}_o{ORIENT}')
             in_aug_path = os.path.join(BASE_IN_PATH, filt)
-            create_aug_tfrecord(fps_fold, dg_cfg, out_path, in_aug_path)
+
+            fps_fold = fps_folds[i]
+            print(len(fps_fold))
+            create_aug_tfrecord(fps_fold, dg_cfg, out_path, ORIENT, in_aug_path)
 

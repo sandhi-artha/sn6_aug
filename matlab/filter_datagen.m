@@ -38,9 +38,8 @@ for f = 1:length(folds)
                 % prevents inf when converting back to dB if there's value 0
                 sar_res(sar_res < 1) = 1;
 
-                % convert to dB again and rescale to range of uint8
+                % convert to dB again and change precision to single
                 sar_res = single(to_db(sar_res));
-%                 sar_res = uint8(rescale(to_db(sar_res), 0, 255));
 
                 % save to filter folder with same filename as original
                 save_fn = strrep(strtrim(fold(i,:)), '.tif','.mat');
