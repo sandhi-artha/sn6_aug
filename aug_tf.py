@@ -226,12 +226,13 @@ def update_aug_tf(
         IS_AUG_TF = 0
     
     return IS_AUG_TF
-        
+
 def update_aug_off(
     is_elee=0,
     is_frost=0,
     is_gmap=0
 ):
+    """configure offline augmentation and several global variables"""
     IS_OFF_AUG = 1
     if is_elee:
         tr_cfg['OFF_DS'] = 'elee'
@@ -250,7 +251,20 @@ def update_aug_off(
         SUB_PATH_TRAIN = ''
         SUB_PATH_VAL = ''
 
-    return IS_OFF_AUG
+    TFREC_FORMAT = {
+        'image': tf.io.FixedLenFeature([], tf.string),
+        'label': tf.io.FixedLenFeature([], tf.string),
+        'data_idx': tf.io.VarLenFeature(tf.int64),
+        'fn': tf.io.FixedLenFeature([], tf.string),
+        'orient': tf.io.FixedLenFeature([], tf.int64),
+    }
+
+    if IS_OFF_AUG:  # if offline augmentation is on
+        TFREC_FORMAT['image3'] = tf.io.FixedLenFeature([], tf.string)
+        TFREC_FORMAT['image5'] = tf.io.FixedLenFeature([], tf.string)
+        TFREC_FORMAT['image7'] = tf.io.FixedLenFeature([], tf.string)
+
+    return IS_OFF_AUG, SUB_PATH_TRAIN, SUB_PATH_VAL, TFREC_FORMAT
 
 
 

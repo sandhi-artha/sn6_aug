@@ -70,7 +70,7 @@ def off_aug_selector(features):
         image = tf.io.parse_tensor(features["image"], tf.float32)
     return image
 
-def read_tfrecord(feature):
+def read_tfrecord(feature, off_aug=False):
     """data_idx is [r0,r1,c0,c1]
     parse a serialized example
     if off_aug: use prob to select one image
@@ -78,7 +78,7 @@ def read_tfrecord(feature):
     rescale image to have max val of 1.0
     """
     features = tf.io.parse_single_example(feature, TFREC_FORMAT)
-    if IS_OFF_AUG:
+    if off_aug:
         image = off_aug_selector(features)
     else:
         image = tf.io.parse_tensor(features["image"], tf.float32)
@@ -102,7 +102,7 @@ def remove_fn(img, label, fn):
     """removes meta as arg to not raise error when training"""
     return img, label
 
-def load_dataset(filenames, load_fn=False, ordered=False):
+def load_dataset(filenames, off_aug=False, load_fn=False, ordered=False):
     """
     takes list of .tfrec files, read using TFRecordDataset,
     parse and decode using read_tfrecord func,
@@ -114,7 +114,7 @@ def load_dataset(filenames, load_fn=False, ordered=False):
     if not ordered: options.experimental_deterministic = False
     dataset = tf.data.TFRecordDataset(filenames, num_parallel_reads=AUTOTUNE)
     dataset = dataset.with_options(options)
-    dataset = dataset.map(read_tfrecord, num_parallel_calls=AUTOTUNE)
+    dataset = dataset.map(lambda feature: read_tfrecord(feature, off_aug), num_parallel_calls=AUTOTUNE)
     if not load_fn:
         dataset = dataset.map(remove_fn, num_parallel_calls=AUTOTUNE)
     return dataset
@@ -128,7 +128,7 @@ def get_training_dataset(files, shuffle=True, ordered=False):
     shuffle before batch
     use prefetch to load using cpu while accelerator trains
     """
-    dataset = load_dataset(files, ordered=ordered)  # [900,900]
+    dataset = load_dataset(files, off_aug=IS_OFF_AUG, ordered=ordered)  # [900,900]
     dataset = dataset.map(REDUCE_RES, num_parallel_calls=AUTOTUNE)  # reduce resolution to target
     if IS_AUG_ALBU:  # apply albumentation aug (mostly pixel, so it goes first)
         dataset = dataset.map(aug_albu, num_parallel_calls=AUTOTUNE)
