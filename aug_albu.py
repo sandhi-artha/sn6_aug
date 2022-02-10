@@ -53,9 +53,9 @@ def get_aug_albu_func(
     # geometric transformation, done after filtering
     if is_coarse_do:
         transforms_list.append(
-            A.augmentations.CoarseDropout(max_holes=10, max_height=20,
-                max_width=10, min_holes=1, min_height=5, min_width=5,
-                fill_value=0.9, mask_fill_value=0)
+            A.augmentations.CoarseDropout(max_holes=6, max_height=40,
+                max_width=40, min_holes=2, min_height=30, min_width=30,
+                fill_value=0.0, mask_fill_value=0)
         )
     
     if len(transforms_list)>0:
