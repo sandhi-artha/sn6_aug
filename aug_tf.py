@@ -236,20 +236,16 @@ def update_aug_off(
     IS_OFF_AUG = 1
     if is_elee:
         tr_cfg['OFF_DS'] = 'elee'
-        SUB_PATH_TRAIN = 'elee'
-        SUB_PATH_VAL = 'elee'
+        OFF_FILTER = 'elee'
     elif is_frost:
         tr_cfg['OFF_DS'] = 'frost'
-        SUB_PATH_TRAIN = 'frost'
-        SUB_PATH_VAL = 'frost'
+        OFF_FILTER = 'frost'
     elif is_gmap:
         tr_cfg['OFF_DS'] = 'gmap'
-        SUB_PATH_TRAIN = 'gmap'
-        SUB_PATH_VAL = 'gmap'
+        OFF_FILTER = 'gmap'
     else:
         IS_OFF_AUG = 0
-        SUB_PATH_TRAIN = ''
-        SUB_PATH_VAL = ''
+        OFF_FILTER = ''
 
     TFREC_FORMAT = {
         'image': tf.io.FixedLenFeature([], tf.string),
@@ -260,11 +256,11 @@ def update_aug_off(
     }
 
     if IS_OFF_AUG:  # if offline augmentation is on
-        TFREC_FORMAT['image3'] = tf.io.FixedLenFeature([], tf.string)
-        TFREC_FORMAT['image5'] = tf.io.FixedLenFeature([], tf.string)
-        TFREC_FORMAT['image7'] = tf.io.FixedLenFeature([], tf.string)
+        TFREC_FORMAT[f'image3_{OFF_FILTER}'] = tf.io.FixedLenFeature([], tf.string)
+        TFREC_FORMAT[f'image5_{OFF_FILTER}'] = tf.io.FixedLenFeature([], tf.string)
+        TFREC_FORMAT[f'image7_{OFF_FILTER}'] = tf.io.FixedLenFeature([], tf.string)
 
-    return IS_OFF_AUG, SUB_PATH_TRAIN, SUB_PATH_VAL, TFREC_FORMAT
+    return IS_OFF_AUG, OFF_FILTER, TFREC_FORMAT
 
 
 

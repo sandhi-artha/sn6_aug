@@ -19,14 +19,13 @@ TFREC_FORMAT = {
     'orient': tf.io.FixedLenFeature([], tf.int64),
 }
 
-if IS_OFF_AUG:  # if offline augmentation is on
-    TFREC_FORMAT['image3'] = tf.io.FixedLenFeature([], tf.string)
-    TFREC_FORMAT['image5'] = tf.io.FixedLenFeature([], tf.string)
-    TFREC_FORMAT['image7'] = tf.io.FixedLenFeature([], tf.string)
-
 AUTOTUNE = tf.data.experimental.AUTOTUNE
 IMAGE_CH = len(tr_cfg['SAR_CH'])
 IS_TPU = 1 if tr_cfg['DEVICE'] == 'tpu' else 0
+IS_AUG_ALBU = 0
+IS_AUG_TF = 0
+IS_OFF_AUG = 0
+OFF_FILTER = ''
 
 
 
@@ -61,11 +60,11 @@ def off_aug_selector(features):
     # take a filtered image with a random filter strength
     p_filter = tf.random.uniform([], 0, 1.0, dtype=tf.float32)
     if p_filter > .75:
-        image = tf.io.parse_tensor(features["image3"], tf.float32)
+        image = tf.io.parse_tensor(features[f"image3_{OFF_FILTER}"], tf.float32)
     elif p_filter > .5:
-        image = tf.io.parse_tensor(features["image5"], tf.float32)
+        image = tf.io.parse_tensor(features[f"image5_{OFF_FILTER}"], tf.float32)
     elif p_filter > .25:
-        image = tf.io.parse_tensor(features["image7"], tf.float32)
+        image = tf.io.parse_tensor(features[f"image7_{OFF_FILTER}"], tf.float32)
     else:
         image = tf.io.parse_tensor(features["image"], tf.float32)
     return image

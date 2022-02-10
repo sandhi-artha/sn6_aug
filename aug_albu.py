@@ -1,9 +1,6 @@
 import albumentations as A
 import albumentations.augmentations.transforms as AAT
 
-### GLOBAL VARIABLES ###
-IS_AUG_ALBU = 0
-
 
 
 ### AUGMENTATION TRANSFORMS ###
