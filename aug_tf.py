@@ -247,20 +247,7 @@ def update_aug_off(
         IS_OFF_AUG = 0
         OFF_FILTER = ''
 
-    TFREC_FORMAT = {
-        'image': tf.io.FixedLenFeature([], tf.string),
-        'label': tf.io.FixedLenFeature([], tf.string),
-        'data_idx': tf.io.VarLenFeature(tf.int64),
-        'fn': tf.io.FixedLenFeature([], tf.string),
-        'orient': tf.io.FixedLenFeature([], tf.int64),
-    }
-
-    if IS_OFF_AUG:  # if offline augmentation is on
-        TFREC_FORMAT[f'image3_{OFF_FILTER}'] = tf.io.FixedLenFeature([], tf.string)
-        TFREC_FORMAT[f'image5_{OFF_FILTER}'] = tf.io.FixedLenFeature([], tf.string)
-        TFREC_FORMAT[f'image7_{OFF_FILTER}'] = tf.io.FixedLenFeature([], tf.string)
-
-    return IS_OFF_AUG, OFF_FILTER, TFREC_FORMAT
+    return IS_OFF_AUG, OFF_FILTER
 
 
 

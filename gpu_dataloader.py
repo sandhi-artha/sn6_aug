@@ -76,10 +76,23 @@ def read_tfrecord(feature, off_aug=False):
     reshape to return shape of img
     rescale image to have max val of 1.0
     """
-    features = tf.io.parse_single_example(feature, TFREC_FORMAT)
+    TFREC_FORMAT = {
+        'image': tf.io.FixedLenFeature([], tf.string),
+        'label': tf.io.FixedLenFeature([], tf.string),
+        'data_idx': tf.io.VarLenFeature(tf.int64),
+        'fn': tf.io.FixedLenFeature([], tf.string),
+        'orient': tf.io.FixedLenFeature([], tf.int64),
+    }
+    
     if off_aug:
+        TFREC_FORMAT[f'image3_{OFF_FILTER}'] = tf.io.FixedLenFeature([], tf.string)
+        TFREC_FORMAT[f'image5_{OFF_FILTER}'] = tf.io.FixedLenFeature([], tf.string)
+        TFREC_FORMAT[f'image7_{OFF_FILTER}'] = tf.io.FixedLenFeature([], tf.string)
+        features = tf.io.parse_single_example(feature, TFREC_FORMAT)
         image = off_aug_selector(features)
     else:
+        # validation will go here
+        features = tf.io.parse_single_example(feature, TFREC_FORMAT)
         image = tf.io.parse_tensor(features["image"], tf.float32)
     label = tf.io.parse_tensor(features["label"], tf.bool)
     label = tf.cast(label, tf.float32)
@@ -159,12 +172,6 @@ def get_validation_dataset(files):
 def pass_reduce(image, label, fn):
     image, label = VAL_REDUCE_RES(image, label)
     return image, label, fn
-
-def get_preview_dataset(files):
-    dataset = json.load(files, load_fn=True, ordered=True)
-    dataset = dataset.map(pass_reduce, num_parallel_calls=AUTOTUNE)
-    data = dataset.map(remove_fn).batch(tr_cfg['BATCH_SIZE'])
-    return dataset, data
 
 def get_preview_dataset(files, n_show, shuffle=False):
     """
