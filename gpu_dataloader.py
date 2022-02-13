@@ -141,9 +141,9 @@ def get_training_dataset(files, shuffle=True, ordered=False):
     use prefetch to load using cpu while accelerator trains
     """
     dataset = load_dataset(files, off_aug=IS_OFF_AUG, ordered=ordered)  # [900,900]
-    dataset = dataset.map(REDUCE_RES, num_parallel_calls=AUTOTUNE)  # reduce resolution to target
     if IS_AUG_ALBU:  # apply albumentation aug (mostly pixel, so it goes first)
         dataset = dataset.map(aug_albu, num_parallel_calls=AUTOTUNE)
+    dataset = dataset.map(REDUCE_RES, num_parallel_calls=AUTOTUNE)  # reduce resolution to target
     if IS_AUG_TF:    # apply aug from tf (mostly geometric)
         dataset = dataset.map(aug_tf, num_parallel_calls=AUTOTUNE)
     dataset = dataset.repeat()
