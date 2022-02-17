@@ -11,14 +11,6 @@ from wandb.keras import WandbCallback
 
 
 ### GLOBAL VARIABLES ###
-TFREC_FORMAT = {
-    'image': tf.io.FixedLenFeature([], tf.string),
-    'label': tf.io.FixedLenFeature([], tf.string),
-    'data_idx': tf.io.VarLenFeature(tf.int64),
-    'fn': tf.io.FixedLenFeature([], tf.string),
-    'orient': tf.io.FixedLenFeature([], tf.int64),
-}
-
 AUTOTUNE = tf.data.experimental.AUTOTUNE
 IMAGE_CH = len(tr_cfg['SAR_CH'])
 IS_TPU = 1 if tr_cfg['DEVICE'] == 'tpu' else 0
@@ -69,8 +61,9 @@ def off_aug_selector(features):
         image = tf.io.parse_tensor(features["image"], tf.float32)
     return image
 
-def read_tfrecord(feature, off_aug=False):
+def read_tfrecord(feature):
     """data_idx is [r0,r1,c0,c1]
+    config controlled by global flags
     parse a serialized example
     if off_aug: use prob to select one image
     reshape to return shape of img
@@ -84,7 +77,7 @@ def read_tfrecord(feature, off_aug=False):
         'orient': tf.io.FixedLenFeature([], tf.int64),
     }
     
-    if off_aug:
+    if IS_OFF_AUG:
         TFREC_FORMAT[f'image3_{OFF_FILTER}'] = tf.io.FixedLenFeature([], tf.string)
         TFREC_FORMAT[f'image5_{OFF_FILTER}'] = tf.io.FixedLenFeature([], tf.string)
         TFREC_FORMAT[f'image7_{OFF_FILTER}'] = tf.io.FixedLenFeature([], tf.string)
@@ -105,6 +98,18 @@ def read_tfrecord(feature, off_aug=False):
     label = tf.reshape(label, [h, w, 1])
 
     image = tf.math.divide(image, tf.math.reduce_max(image))
+    
+    if IS_AUG_ALBU:
+        image, label = aug_albu(image, label)
+        # add back shape bcz numpy_function makes it unknown
+        image = tf.reshape(image, [h, w, IMAGE_CH])
+        label = tf.reshape(label, [h, w, 1])
+    
+    image, label = REDUCE_RES(image, label)
+
+    if IS_AUG_TF:
+        image, label = aug_tf(image, label)
+
     fn = features['fn']
 
     return image, label, fn
@@ -114,7 +119,12 @@ def remove_fn(img, label, fn):
     """removes meta as arg to not raise error when training"""
     return img, label
 
-def load_dataset(filenames, off_aug=False, load_fn=False, ordered=False):
+
+def get_training_dataset(
+    filenames,
+    load_fn=False,
+    ordered=False,
+    shuffle=True):
     """
     takes list of .tfrec files, read using TFRecordDataset,
     parse and decode using read_tfrecord func,
@@ -126,64 +136,62 @@ def load_dataset(filenames, off_aug=False, load_fn=False, ordered=False):
     if not ordered: options.experimental_deterministic = False
     dataset = tf.data.TFRecordDataset(filenames, num_parallel_reads=AUTOTUNE)
     dataset = dataset.with_options(options)
-    dataset = dataset.map(lambda feature: read_tfrecord(feature, off_aug), num_parallel_calls=AUTOTUNE)
+    dataset = dataset.map(read_tfrecord, num_parallel_calls=AUTOTUNE)
     if not load_fn:
         dataset = dataset.map(remove_fn, num_parallel_calls=AUTOTUNE)
-    return dataset
-    
-
-def get_training_dataset(files, shuffle=True, ordered=False):
-    """
-    loads training dataset,
-    maps reduce resolution, maps augmentations,
-    repeat until TRAIN_STEPS exhausted
-    shuffle before batch
-    use prefetch to load using cpu while accelerator trains
-    """
-    dataset = load_dataset(files, off_aug=IS_OFF_AUG, ordered=ordered)  # [900,900]
-    if IS_AUG_ALBU:  # apply albumentation aug (mostly pixel, so it goes first)
-        dataset = dataset.map(aug_albu, num_parallel_calls=AUTOTUNE)
-    dataset = dataset.map(REDUCE_RES, num_parallel_calls=AUTOTUNE)  # reduce resolution to target
-    if IS_AUG_TF:    # apply aug from tf (mostly geometric)
-        dataset = dataset.map(aug_tf, num_parallel_calls=AUTOTUNE)
     dataset = dataset.repeat()
     if shuffle:
         dataset = dataset.shuffle(tr_cfg['SHUFFLE_BUFFER'])  # 2000
     dataset = dataset.batch(tr_cfg['BATCH_SIZE'])
     dataset = dataset.prefetch(AUTOTUNE)
-    
     return dataset
+
+def read_tfrecord_val(feature):
+    """
+    val has less variation
+    only needs a reduce_res
+    
+    """
+    TFREC_FORMAT = {
+        'image': tf.io.FixedLenFeature([], tf.string),
+        'label': tf.io.FixedLenFeature([], tf.string),
+        'data_idx': tf.io.VarLenFeature(tf.int64),
+        'fn': tf.io.FixedLenFeature([], tf.string),
+        'orient': tf.io.FixedLenFeature([], tf.int64),
+    }
+    
+    # validation will go here
+    features = tf.io.parse_single_example(feature, TFREC_FORMAT)
+    image = tf.io.parse_tensor(features["image"], tf.float32)
+    label = tf.io.parse_tensor(features["label"], tf.bool)
+    label = tf.cast(label, tf.float32)
+
+    data_idx = tf.sparse.to_dense(features["data_idx"])
+    h = data_idx[1] - data_idx[0]
+    w = data_idx[3] - data_idx[2]
+    
+    image = tf.reshape(image, [h, w, IMAGE_CH])
+    label = tf.reshape(label, [h, w, 1])
+
+    image = tf.math.divide(image, tf.math.reduce_max(image))
+
+    image, label = VAL_REDUCE_RES(image, label)
+
+    return image, label
 
 def get_validation_dataset(files):
     """
-    loads validation set
-    maps reduce resolution, defaults to "pad_resize"
-    cache only when using TPU. in gpu it gives warning
-        about order for batch, also doesn't give any performance
+    only variation is reduce function (will be pad_resize anyway)            
     """
-    dataset = load_dataset(files)
-    dataset = dataset.map(VAL_REDUCE_RES, num_parallel_calls=AUTOTUNE)
+    options = tf.data.Options()
+    options.experimental_deterministic = False
+    dataset = tf.data.TFRecordDataset(files, num_parallel_reads=AUTOTUNE)
+    dataset = dataset.with_options(options)
+    dataset = dataset.map(read_tfrecord_val, num_parallel_calls=AUTOTUNE)
     if IS_TPU: dataset = dataset.cache()
     dataset = dataset.batch(tr_cfg['BATCH_SIZE'])
     dataset = dataset.prefetch(AUTOTUNE)
-    
     return dataset
-
-def pass_reduce(image, label, fn):
-    image, label = VAL_REDUCE_RES(image, label)
-    return image, label, fn
-
-def get_preview_dataset(files, n_show, shuffle=False):
-    """
-    loads set for preview
-    maps reduce resolution, defaults to "pad_resize"
-    """
-    dataset = load_dataset(files, load_fn=1, ordered=1)
-    dataset = dataset.map(VAL_REDUCE_RES, num_parallel_calls=AUTOTUNE)
-    if shuffle: dataset = dataset.shuffle(tr_cfg['SHUFFLE_BUFFER'])
-    dataset = dataset.batch(n_show)
-    return dataset
-
 
 def get_config_wandb(run_path):
     # restore file and read yaml as dict
