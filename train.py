@@ -74,6 +74,8 @@ def train(train_splits, val_splits):
     train_paths = KaggleDatasets().get_gcs_path(tr_cfg['TRAIN_PATH'])
     if tr_cfg['OFF_AUG_PATH']:
         off_ds_paths = KaggleDatasets().get_gcs_path(tr_cfg['OFF_AUG_PATH'])
+    else:
+        off_ds_paths = ''
     TRAIN_FN, TRAIN_STEPS = get_filenames(train_splits,
                                         train_paths, off_ds_paths)
     train_dataset = get_training_dataset(TRAIN_FN)                                                         
