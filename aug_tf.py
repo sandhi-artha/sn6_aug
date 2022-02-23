@@ -4,7 +4,6 @@ import math
 
 ### GLOBAL VARIABLES ###
 IS_AUG_TF = 0
-IS_OFF_AUG = 0
 
 ### REDUCE RESIZE FUNCTION ###
 def resize(image, label):
@@ -226,29 +225,3 @@ def update_aug_tf(
         IS_AUG_TF = 0
     
     return IS_AUG_TF
-
-def update_aug_off(
-    is_elee=0,
-    is_frost=0,
-    is_gmap=0
-):
-    """configure offline augmentation and several global variables"""
-    IS_OFF_AUG = 1
-    if is_elee:
-        tr_cfg['OFF_DS'] = 'elee'
-        OFF_FILTER = 'elee'
-    elif is_frost:
-        tr_cfg['OFF_DS'] = 'frost'
-        OFF_FILTER = 'frost'
-    elif is_gmap:
-        tr_cfg['OFF_DS'] = 'gmap'
-        OFF_FILTER = 'gmap'
-    else:
-        IS_OFF_AUG = 0
-        OFF_FILTER = ''
-
-    return IS_OFF_AUG, OFF_FILTER
-
-
-
-

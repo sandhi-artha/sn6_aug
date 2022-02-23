@@ -1,19 +1,86 @@
 import seaborn as sns
 import matplotlib.pyplot as plt
 
+def preview_data():
+    train_paths = KaggleDatasets().get_gcs_path(tr_cfg['TRAIN_PATH'])
+    if tr_cfg['OFF_AUG_PATH']:
+        off_ds_paths = KaggleDatasets().get_gcs_path(tr_cfg['OFF_AUG_PATH'])
+    TRAIN_FN, TRAIN_STEPS = get_filenames(tr_cfg['TRAIN_SPLITS'],
+                                          train_paths, off_ds_paths, out=1)
+    train_dataset = get_training_dataset(TRAIN_FN, shuffle=False, ordered=True)
+
+    f, ax = plt.subplots(2,4,figsize=(20,10))
+    for i, [img,label] in enumerate(train_dataset.take(4)):
+        ax[0,i].imshow(img[0], cmap='gray')
+        ax[1,i].imshow(label[0], cmap='gray')
+    plt.show()
+
+    val_paths = KaggleDatasets().get_gcs_path(tr_cfg['VAL_PATH'])
+    VAL_FN, VAL_STEPS = get_filenames(tr_cfg['VAL_SPLITS'], val_paths, out=1)
+    valid_dataset = get_validation_dataset(VAL_FN)
+
+    for img, label in valid_dataset.take(1):
+        f,[ax1,ax2] = plt.subplots(1,2)
+        ax1.imshow(img[0], cmap='gray')
+        ax2.imshow(label[0], cmap='gray')
+        plt.show()
+    
+    # delete everything to start fresh
+    del train_dataset, valid_dataset
+    gc.collect()
+
+
+def do_train():
+    for val_splits in cv_folds:  # alternate val fold if CV
+        model_list = []
+        for i in range(REP):  # repeat 3x
+            print(f'TRAIN RUN: {tr_cfg["RUN"]}, REP: {i}..')
+
+            if tr_cfg['IS_CV']:
+                # train_splits is the rest of splits other than used by val_splits
+                train_splits = [split for split in cv_folds if split != val_splits]
+                print(f'Training on: {train_splits}, Validating on: {val_splits}')
+                # update splits in config
+                tr_cfg['TRAIN_SPLITS'] = train_splits
+                tr_cfg['VAL_SPLITS'] = val_splits
+            else:
+                # use all splits for training, use external for validation
+                train_splits = tr_cfg['TRAIN_SPLITS']
+                val_splits = tr_cfg['VAL_SPLITS']
+
+            model_list.append(train(train_splits, val_splits))
+
+            # increment RUN, append to name,
+            tr_cfg['RUN'] += 1
+            tr_cfg['NAME'] = f"{tr_cfg['NAME'].split('_')[0]}_{tr_cfg['RUN']}"
+
+            if REP>1:  # increase seed if doing >1 REP with same config
+                tr_cfg['SEED'] += 1
+                seed_everything(tr_cfg['SEED'])
+
+        # averaging predictions
+        if tr_cfg['IS_3_FOLD'] and tr_cfg['VAL_PATH']:
+            get_mean_pred(tr_cfg['VAL_SPLITS'])
+
+        if not tr_cfg['IS_CV']:
+            break  # prevent repeating if not using CV
+
+
 def train(train_splits, val_splits):
     # clear tensorflow state
     K.clear_session()
     
     # get filenames and load dataset
     train_paths = KaggleDatasets().get_gcs_path(tr_cfg['TRAIN_PATH'])
+    if tr_cfg['OFF_AUG_PATH']:
+        off_ds_paths = KaggleDatasets().get_gcs_path(tr_cfg['OFF_AUG_PATH'])
     TRAIN_FN, TRAIN_STEPS = get_filenames(train_splits,
-                                          train_paths, SUB_PATH_TRAIN)
+                                        train_paths, off_ds_paths)
     train_dataset = get_training_dataset(TRAIN_FN)                                                         
 
     if tr_cfg['VAL_PATH']:
         val_paths = KaggleDatasets().get_gcs_path(tr_cfg['VAL_PATH'])
-        VAL_FN, VAL_STEPS = get_filenames(val_splits, val_paths, SUB_PATH_VAL)
+        VAL_FN, VAL_STEPS = get_filenames(val_splits, val_paths)
         valid_dataset = get_validation_dataset(VAL_FN)
     else:
         valid_dataset = VAL_STEPS = None
@@ -52,16 +119,18 @@ def train(train_splits, val_splits):
     # preview results
     if valid_dataset is not None: plot_metrics(history.history)
     if IMAGE_CH<4:
-        if tr_cfg['VAL_PATH']:
-            print('\n'*4)
-            show_predictions(model, VAL_FN, N_VAL_PREV)  # on gpu, shuffle is expensive
-        print('\n'*6, 'training results')
-        show_predictions(model, TRAIN_FN, N_VAL_PREV)
+        if N_VAL_PREV>0:
+            if tr_cfg['VAL_PATH']:
+                print('\n'*4)
+                show_predictions(model, VAL_FN, N_VAL_PREV)  # on gpu, shuffle is expensive
+            print('\n'*6, 'training results')
+            show_predictions(model, TRAIN_FN, N_VAL_PREV)
 
     # delete everything to start fresh
-    del train_dataset, valid_dataset, model
+    del train_dataset, valid_dataset#, model
     gc.collect()
 
+    return model
 
 
 # TRAINING VALIDATION PLOT

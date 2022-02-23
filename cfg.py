@@ -18,6 +18,7 @@ tr_cfg = {
     'IMAGE_DIM'     : 900,  # must be the same as tfrecord res
     'IMAGE_RS'      : 320,
     'TRAIN_PATH'    : '../dataset/sn6_aug/gpu_tfrec', #'sn6-900-uint8',  # kaggle ds name
+    'OFF_AUG_PATH'  : 'sn6-crop-off/elee',
     'TRAIN_SPLITS'  : ['fold0', 'fold1'],
     'VAL_PATH'      : '../dataset/sn6_aug/gpu_tfrec', #'base-val-8',  # if None, don't validate
     'VAL_SPLITS'    : ['fold4'],  # will only be considered if val path exist and IS_CV=0
@@ -31,8 +32,7 @@ tr_cfg = {
     'ARC'           : 'fpn',              # 'unet', 'fpn'
     'WEIGHT'        : None,         # 'imagenet', 'pre-trained from:..', None
     'LF'            : 'dice',    # 'bce', 'jaccard_distance', 'focal', 'giou'
-    'EPOCHS'        : 60,
-    'L_RATE'        : 4e-4,       # 32e-4, 4e-4, 5e-5
+    'L_RATE'        : 32e-4,       # 32e-4, 4e-4, 5e-5
     'IS_CV'         : 0,   # cross validation
     'IS_3_FOLD'     : 0,   # do same training 3x to get an average value
     'IS_CB_ES'      : 0,   # early stopping

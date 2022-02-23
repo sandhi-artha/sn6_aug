@@ -20,6 +20,8 @@ def get_serialize_aug_image(raster_path, feature):
             ex: 'image3_frost' for 3x3 window size from frost filter
             shape: 900,900,1
             dtype: .mat single (fp32)
+        stacks all filtered in a single tfrec example
+            during training, will select one of them, mimicking augmentation algo
     """
     fn = os.path.basename(raster_path)  # take basename since they're same for all augs
     fn = '_'.join(fn.split('_')[-4:])

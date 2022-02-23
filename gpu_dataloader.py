@@ -3,6 +3,7 @@ import re    # count tfrec
 import gc    # deleting stuff
 import json
 import yaml
+import random
 
 import numpy as np
 import tensorflow as tf
@@ -16,8 +17,7 @@ IMAGE_CH = len(tr_cfg['SAR_CH'])
 IS_TPU = 1 if tr_cfg['DEVICE'] == 'tpu' else 0
 IS_AUG_ALBU = 0
 IS_AUG_TF = 0
-IS_OFF_AUG = 0
-OFF_FILTER = ''
+
 
 
 
@@ -29,37 +29,36 @@ def count_data_items(filenames):
     
     return np.sum(n)
 
-def get_filenames(split, ds_path, sub_path='', out=False):
+def get_filenames(splits, ds_path, off_ds_path='', out=False):
     """
-    fold_list : list of str of each fold
+    splits : list
+        contain what folds to use during training or val
+    ds_path : str
+        path to train or val dataset
     """
-    fns = []
-    for fold in split:
-        fol_path = os.path.join(ds_path, sub_path, f'{fold}_o{tr_cfg["ORIENT"]}*.tfrec')
+    fns = []  # will become ['foldx_ox-yy-zz.tfrec', ...]
+    for fold in splits:
+        fol_path = os.path.join(ds_path, f'{fold}_o{tr_cfg["ORIENT"]}*.tfrec')
         fold_fns  = tf.io.gfile.glob(fol_path)
         for fn in fold_fns:
             fns.append(fn)
+
+        if off_ds_path:
+            fol_path = os.path.join(off_ds_path, f'{fold}_o{tr_cfg["ORIENT"]}*.tfrec')
+            fold_fns  = tf.io.gfile.glob(fol_path)
+            for fn in fold_fns:
+                fns.append(fn)
     
+    random.shuffle(fns)
+
     num_img = count_data_items(fns)
     steps = num_img//tr_cfg['BATCH_SIZE']
 
     if out:
-        print(f'{split} files: {len(fns)} with {num_img} images')
+        print(f'{splits} files: {len(fns)} with {num_img} images')
     
     return fns, steps
 
-def off_aug_selector(features):
-    # take a filtered image with a random filter strength
-    p_filter = tf.random.uniform([], 0, 1.0, dtype=tf.float32)
-    if p_filter > .75:
-        image = tf.io.parse_tensor(features[f"image3_{OFF_FILTER}"], tf.float32)
-    elif p_filter > .5:
-        image = tf.io.parse_tensor(features[f"image5_{OFF_FILTER}"], tf.float32)
-    elif p_filter > .25:
-        image = tf.io.parse_tensor(features[f"image7_{OFF_FILTER}"], tf.float32)
-    else:
-        image = tf.io.parse_tensor(features["image"], tf.float32)
-    return image
 
 def read_tfrecord(feature):
     """data_idx is [r0,r1,c0,c1]
@@ -76,17 +75,10 @@ def read_tfrecord(feature):
         'fn': tf.io.FixedLenFeature([], tf.string),
         'orient': tf.io.FixedLenFeature([], tf.int64),
     }
-    
-    if IS_OFF_AUG:
-        TFREC_FORMAT[f'image3_{OFF_FILTER}'] = tf.io.FixedLenFeature([], tf.string)
-        TFREC_FORMAT[f'image5_{OFF_FILTER}'] = tf.io.FixedLenFeature([], tf.string)
-        TFREC_FORMAT[f'image7_{OFF_FILTER}'] = tf.io.FixedLenFeature([], tf.string)
-        features = tf.io.parse_single_example(feature, TFREC_FORMAT)
-        image = off_aug_selector(features)
-    else:
-        # validation will go here
-        features = tf.io.parse_single_example(feature, TFREC_FORMAT)
-        image = tf.io.parse_tensor(features["image"], tf.float32)
+
+    # validation will go here
+    features = tf.io.parse_single_example(feature, TFREC_FORMAT)
+    image = tf.io.parse_tensor(features["image"], tf.float32)
     label = tf.io.parse_tensor(features["label"], tf.bool)
     label = tf.cast(label, tf.float32)
 
