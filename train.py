@@ -103,7 +103,7 @@ def train(train_splits, val_splits):
                          config=tr_cfg,
                          reinit=True,
                         )
-        callbacks.append(WandbCallback())
+        callbacks.append(WandbCallback(monitor='val_iou_score',mode='max'))
 
 
     print('starting training..')
