@@ -10,11 +10,73 @@ from tensorflow.keras import backend as K
 import segmentation_models as sm
 from tensorflow.keras.callbacks import EarlyStopping, ModelCheckpoint, CSVLogger, LearningRateScheduler, ReduceLROnPlateau
 
+import wandb
+import yaml
 
 # print(f'tensorflow_addons version: {tfa.__version__}')
+AUTOTUNE = tf.data.experimental.AUTOTUNE
+IS_TPU = 1 if tr_cfg['DEVICE'] == 'tpu' else 0
+IS_AUG_ALBU = 0
+IS_AUG_TF = 0
+
+class Dict2Obj(object):
+    """Turns a dictionary into a class"""
+    def __init__(self, dictionary):
+        for key in dictionary: setattr(self, key, dictionary[key])
+
+class BFE():
+    """Building Footprint Extractor"""
+    def __init__(self, cfg):
+        self.cfg = Dict2Obj(cfg)
+        self.IMAGE_CH = len(self.cfg.SAR_CH)
+
+    def load_model(self, model_path=None, wandb_path=None):
+        """either download new model, or use pt ones to continue training"""
+        if model_path:
+            model = load_pretrained_model(model_path)
+        elif wandb_path:
+            # download .h5 file
+            cfg = get_config_wandb(wandb_path)
+            print(f'loading model {self.cfg.NAME}')
+            model_file = wandb.restore('model-best.h5', run_path=wandb_path)
+            model_path = model_file.name
+            model_file.close()
+            model = load_pretrained_model(model_path)
+        else:
+            print('loading new model')
+            model = load_new_model()
+        
+        print(f'Total params: {model.count_params():,}')
+        return model
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+def get_config_wandb(run_path):
+    """restore model and read yaml as dict"""
+    cfg_file = wandb.restore('config.yaml', run_path=run_path)
+    cfg_y = yaml.load(cfg_file, Loader=yaml.FullLoader)
+    cfg_file.close()
+    
+    cfg = {}  # create new dictionary
+    
+    # get only capital keys, cfg that you wrote
+    for key in cfg_y.keys():
+        if key.isupper():
+            cfg[key] = cfg_y[key]['value']
+    
+    return cfg
 
 
 
