@@ -2,6 +2,7 @@
 # create tfrecord
 import os
 import json
+import glob
 import pickle
 
 import numpy as np
@@ -10,19 +11,34 @@ from rasterio import features as feat
 import geopandas as gpd
 import tensorflow as tf
 
-from cfg import dg_cfg
+# add sn6_aug folder to PYTHONPATH env variable
+# abspath of __file__ run from sn6_aug dir is '/root/sn6_aug/datasets/gpu_datagen.py'
+#   it doesn't matter where you run, bcz it uses abspath
+# this will add '/root/sn6_aug' to PYTHONPATH and you can do: from solaris.base import Evaluator
+import sys
+BASE_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.append(BASE_PATH)
+# print(os.path.abspath(__file__))
+
+from datasets.dg_cfg import dg_cfg
 from lib.raster import get_data_region_idx
 from lib.proc import to_hwc
 
 
-
+if dg_cfg['mode'] == 'sar':
+    MODE = 'SAR-Intensity'
+elif dg_cfg['mode'] == 'pan':
+    MODE = 'PAN'
+else:
+    print('Invalid dataset, use "pan" or "sar"')
+    sys.exit()
 
 
 ### GET DATA ###
 def get_label_path(raster_path):
     vector_path = raster_path
-    vector_path = vector_path.replace('SAR-Intensity', 'geojson_buildings',1)
-    vector_path = vector_path.replace('SAR-Intensity', 'Buildings')
+    vector_path = vector_path.replace(MODE, 'geojson_buildings',1)
+    vector_path = vector_path.replace(MODE, 'Buildings')
     vector_path = vector_path.replace('.tif', '.geojson')
     return vector_path
 
@@ -57,7 +73,6 @@ def get_image_label(raster_path, ch=None):
     data_region_idx = [r0,r1,c0,c1]
 
     return image, mask, data_region_idx
-
 
 ### TFRECORD GENERATOR ###
 def serialize_image(image, out_precision=32):
@@ -101,7 +116,6 @@ def _int64_feature(value):
   """Returns an int64_list from a bool / enum / int / uint."""
   return tf.train.Feature(int64_list=tf.train.Int64List(value=value))
 
-
 def create_tfrecord(raster_paths, cfg, base_fn, orient):
     """
     100 images per tfrecord
@@ -142,14 +156,20 @@ def create_tfrecord(raster_paths, cfg, base_fn, orient):
                 # write tfrecords
                 example = tf.train.Example(features=tf.train.Features(feature=feature))
                 writer.write(example.SerializeToString())
+                break
+        break
 
+
+### CONFIG ###
 def add_base_path(fns_folds):
     """add base_path to the saved filenames"""
     fps_folds = []
     for fns_fold in fns_folds:
         fps_fold = []
         for fn in fns_fold:
-            fps_fold.append(os.path.join(dg_cfg['base_dir'], 'SAR-Intensity', fn))
+            if MODE == 'PAN':
+                fn = fn.replace('SAR-Intensity', 'PAN')
+            fps_fold.append(os.path.join(dg_cfg['base_dir'], MODE, fn))
         fps_folds.append(fps_fold)
     return fps_folds
 
@@ -160,6 +180,7 @@ def datagen_orient(orient):
         fns_folds = pickle.load(f)
     
     fps_folds = add_base_path(fns_folds)
+    print(fps_folds[0][0])
 
     print(f'orient {orient}')
     if not os.path.isdir(dg_cfg['out_dir']):
@@ -171,6 +192,43 @@ def datagen_orient(orient):
         
         create_tfrecord(fps_fold, dg_cfg, out_path, orient)
 
+def test_tfrec():
+    import matplotlib.pyplot as plt
+
+    TFREC_FORMAT = {
+        'image': tf.io.FixedLenFeature([], tf.string),
+        'label': tf.io.FixedLenFeature([], tf.string),
+        'data_idx': tf.io.VarLenFeature(tf.int64),
+        'fn': tf.io.FixedLenFeature([], tf.string),
+        'orient': tf.io.FixedLenFeature([], tf.int64),
+    }
+
+    def _read_tfrecord(feature):
+        features = tf.io.parse_single_example(feature, TFREC_FORMAT)
+        image = tf.io.parse_tensor(features["image"], tf.float32)
+        label = tf.io.parse_tensor(features["label"], tf.bool)
+        label = tf.cast(label, tf.float32)
+
+        data_idx = tf.sparse.to_dense(features["data_idx"])
+        h = data_idx[1] - data_idx[0]
+        w = data_idx[3] - data_idx[2]
+        image = tf.reshape(image, [h, w, len(dg_cfg['channel'])])
+        label = tf.reshape(label, [h, w, 1])
+
+        image = tf.math.divide(image, tf.math.reduce_max(image))
+        fn = features['fn']
+
+        return image, label, fn
+
+    filenames = glob.glob(os.path.join(dg_cfg['out_dir'], f'*.tfrec'))
+    filename = filenames[0]
+    print(f'loading {filename}')
+    ds = tf.data.TFRecordDataset([filename])
+    ds = ds.map(_read_tfrecord)
+    for img, label, fn in ds.take(1):
+        print(img.shape)
+        print(label.shape)
+        print(fn.numpy())
 
 if __name__=='__main__':
     if os.path.isfile('dg_cfg.json'):
@@ -184,3 +242,5 @@ if __name__=='__main__':
         datagen_orient(0)
     if dg_cfg['orient'] == 1 or dg_cfg['orient'] == 2:
         datagen_orient(1)
+    
+    test_tfrec()

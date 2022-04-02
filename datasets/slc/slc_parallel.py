@@ -1,13 +1,14 @@
 import os
-import json
+import sys
+BASE_PATH = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path.append(BASE_PATH)
+
 from multiprocessing import Pool
 
-from timebudget import timebudget
-
-from datagen import get_ts_orient
-from slc_preproc import SarPreproc
-from slc_tiling import raster_vector_tiling
-from slc_cfg import slc_cfg
+from datasets.datagen import get_ts_orient
+from datasets.slc.slc_cfg import slc_cfg
+from datasets.slc.slc_preproc import SarPreproc
+from datasets.slc.slc_tiling import raster_vector_tiling
 
 def preproc_and_tiling(timestamp):
     out_fn = f'HH_{timestamp}.tif'
@@ -22,5 +23,6 @@ if __name__=='__main__':
     if not os.path.isdir(slc_cfg['out_dir']):
         os.makedirs(slc_cfg['out_dir'])
 
-    processes_pool = Pool(4)
+    NUM_OF_PROCESS = 4
+    processes_pool = Pool(NUM_OF_PROCESS)
     processes_pool.map(preproc_and_tiling, timestamps)

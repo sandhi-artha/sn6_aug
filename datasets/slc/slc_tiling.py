@@ -1,12 +1,15 @@
 import os
+import sys
+BASE_PATH = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path.append(BASE_PATH)
 
 from timebudget import timebudget
 import geopandas as gpd
 from shapely.geometry import box
 import rasterio as rs
 
-from datagen import get_ts_orient
-from slc_cfg import slc_cfg
+from datasets.datagen import get_ts_orient
+from datasets.slc.slc_cfg import slc_cfg
 import solaris.raster_tile as raster_tile
 import solaris.vector_tile as vector_tile
 from solaris.vector_mask import mask_to_poly_geojson

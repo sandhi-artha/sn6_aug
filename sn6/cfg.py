@@ -1,14 +1,3 @@
-dg_cfg = {
-    'base_dir'      : '../dataset/spacenet6-challenge/AOI_11_Rotterdam',
-    'out_dir'       : '../dataset/sn6_aug/gpu_tfrec',
-    'orient'        : 1,
-    'resize'        : None,
-    'folds'         : 5,
-    'channel'       : [1],
-    'tfrec_size'    : 50,
-    'out_precision' : 32,
-}
-
 tr_cfg = {
     # log cfg
     'RUN'           : 1,   # REMEMBER TO INCREMENT!!

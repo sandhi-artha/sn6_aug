@@ -1,9 +1,13 @@
 import os
 import json
+import sys
+BASE_PATH = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path.append(BASE_PATH)
+
 from timebudget import timebudget
 
-from datagen import get_ts_orient
-from slc_cfg import slc_cfg
+from datasets.datagen import get_ts_orient
+from datasets.slc.slc_cfg import slc_cfg
 
 import solaris.pipesegment as pipesegment
 import solaris.image as image

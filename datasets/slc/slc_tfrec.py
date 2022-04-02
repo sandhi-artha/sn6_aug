@@ -1,5 +1,8 @@
 import os
 import glob
+import sys
+BASE_PATH = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path.append(BASE_PATH)
 
 import numpy as np
 import rasterio as rs
@@ -7,9 +10,9 @@ from rasterio import features as feat
 import geopandas as gpd
 import tensorflow as tf
 
-from gpu_datagen import _bytes_feature, _int64_feature
-from gpu_datagen import serialize_image, serialize_label
-from slc_cfg import slc_cfg
+from datasets.datagen import _bytes_feature, _int64_feature
+from datasets.datagen import serialize_image, serialize_label
+from datasets.slc.slc_cfg import slc_cfg
 from lib.proc import to_hwc, normalize, hist_clip
 from lib.raster import get_data_region_idx
 
