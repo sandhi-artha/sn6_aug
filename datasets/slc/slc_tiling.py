@@ -8,7 +8,7 @@ import geopandas as gpd
 from shapely.geometry import box
 import rasterio as rs
 
-from datasets.datagen import get_ts_orient
+from datasets.create_folds import get_ts_orient
 from datasets.slc.slc_cfg import slc_cfg
 import solaris.raster_tile as raster_tile
 import solaris.vector_tile as vector_tile
@@ -38,7 +38,7 @@ def get_labels_bounds(label_dir):
     # give paddings to ensure same raster and vector coverage
     # when using total_bounds, the train boundaries take square coverage
     #   so raster at bot right corner has image but with labels cutoff
-    #   +- 100 for val is not enough (blame the tiling algo)
+    #   +- 100 for val is not enough (blame the tiling algo), 400 removes problem
     train_bounds = labels['train'].total_bounds
     train_bounds[2] -= 400
 
