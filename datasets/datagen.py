@@ -19,7 +19,8 @@ import matplotlib.pyplot as plt
 import sys
 BASE_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(BASE_PATH)
-# print(os.path.abspath(__file__))
+print(os.path.abspath(__file__))
+print(BASE_PATH)
 
 from datasets.dg_cfg import dg_cfg
 from lib.raster import get_data_region_idx
