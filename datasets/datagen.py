@@ -10,6 +10,7 @@ import rasterio as rs
 from rasterio import features as feat
 import geopandas as gpd
 import tensorflow as tf
+import matplotlib.pyplot as plt
 
 # add sn6_aug folder to PYTHONPATH env variable
 # abspath of __file__ run from sn6_aug dir is '/root/sn6_aug/datasets/gpu_datagen.py'
@@ -23,6 +24,7 @@ sys.path.append(BASE_PATH)
 from datasets.dg_cfg import dg_cfg
 from lib.raster import get_data_region_idx
 from lib.proc import to_hwc
+from lib.viz import show_hist, show_stats
 
 
 if dg_cfg['mode'] == 'sar':
@@ -192,9 +194,7 @@ def datagen_orient(orient):
         
         create_tfrecord(fps_fold, dg_cfg, out_path, orient)
 
-def test_tfrec():
-    import matplotlib.pyplot as plt
-
+def test_tfrec(show=4):
     TFREC_FORMAT = {
         'image': tf.io.FixedLenFeature([], tf.string),
         'label': tf.io.FixedLenFeature([], tf.string),
@@ -225,10 +225,16 @@ def test_tfrec():
     print(f'loading {filename}')
     ds = tf.data.TFRecordDataset([filename])
     ds = ds.map(_read_tfrecord)
-    for img, label, fn in ds.take(1):
-        print(img.shape)
-        print(label.shape)
-        print(fn.numpy())
+
+    for img, label, fn in ds.take(show):
+        f,[ax1,ax2,ax3] = plt.subplots(1,3,figsize=(9,3))
+        ax1.imshow(img.numpy()[:,:,0])
+        ax2.imshow(label.numpy()[:,:,0])
+        show_hist(img.numpy(),ax=ax3)
+        plt.show()
+    
+    show_stats(img.numpy())
+    print(fn.numpy())
 
 if __name__=='__main__':
     if os.path.isfile('dg_cfg.json'):
