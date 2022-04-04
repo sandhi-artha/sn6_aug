@@ -1,3 +1,6 @@
+import math
+import tensorflow as tf
+
 tr_cfg = {
     # log cfg
     'RUN'           : 1,   # REMEMBER TO INCREMENT!!
@@ -67,6 +70,28 @@ ev_cfg = {
     'save_dir'      : '../dataset/sn6_aug',
     'chart'         : 'tp',     # 'tp','recall'
 }
+
+if not tr_cfg['IS_CB_LRS']:
+    LR_START = tr_cfg['L_RATE'] # 1e-7 # 1e-6, 1e-7, 1e-8
+    LR_MIN = 3e-6  # 3e-6, 3e-7, 3e-8
+    LR_MAX = tr_cfg['L_RATE']
+    LR_RAMPUP_EPOCHS = 0  # 5
+    LR_SUSTAIN_EPOCHS = 0  # 2
+    N_CYCLES = .5
+    print(f'Learning rate schedule: {LR_START} to {LR_MAX} to {LR_MIN}')
+
+def lrfn(epoch):
+    if epoch < LR_RAMPUP_EPOCHS:
+        lr = (LR_MAX - LR_START) / LR_RAMPUP_EPOCHS * epoch + LR_START
+    elif epoch < LR_RAMPUP_EPOCHS + LR_SUSTAIN_EPOCHS:
+        lr = LR_MAX
+    else:
+        progress = (epoch - LR_RAMPUP_EPOCHS - LR_SUSTAIN_EPOCHS) / (tr_cfg['EPOCHS'] - LR_RAMPUP_EPOCHS - LR_SUSTAIN_EPOCHS)
+        lr = LR_MAX * (0.5 * (1.0 + tf.math.cos(math.pi * N_CYCLES * 2.0 * progress)))
+        if LR_MIN is not None:
+            lr = tf.math.maximum(LR_MIN, lr)
+            
+    return lr
 
 """
 %cd sn6_aug
