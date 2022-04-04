@@ -22,7 +22,7 @@ sys.path.append(BASE_PATH)
 print(os.path.abspath(__file__))
 print(BASE_PATH)
 
-from datasets.dg_cfg import dg_cfg
+from datagen.dg_cfg import dg_cfg
 from lib.raster import get_data_region_idx
 from lib.proc import to_hwc
 from lib.viz import show_hist, show_stats

@@ -6,8 +6,8 @@ sys.path.append(BASE_PATH)
 
 from timebudget import timebudget
 
-from datasets.create_folds import get_ts_orient
-from datasets.slc.slc_cfg import slc_cfg
+from datagen.create_folds import get_ts_orient
+from datagen.slc.slc_cfg import slc_cfg
 
 import solaris.pipesegment as pipesegment
 import solaris.image as image

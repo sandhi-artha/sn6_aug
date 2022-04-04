@@ -5,10 +5,10 @@ sys.path.append(BASE_PATH)
 
 from multiprocessing import Pool
 
-from datasets.create_folds import get_ts_orient
-from datasets.slc.slc_cfg import slc_cfg
-from datasets.slc.slc_preproc import SarPreproc
-from datasets.slc.slc_tiling import raster_vector_tiling
+from datagen.create_folds import get_ts_orient
+from datagen.slc.slc_cfg import slc_cfg
+from datagen.slc.slc_preproc import SarPreproc
+from datagen.slc.slc_tiling import raster_vector_tiling
 
 def preproc_and_tiling(timestamp):
     """for each timestamp (SLC file) perform preprocessing

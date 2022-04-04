@@ -8,8 +8,8 @@ import geopandas as gpd
 from shapely.geometry import box
 import rasterio as rs
 
-from datasets.create_folds import get_ts_orient
-from datasets.slc.slc_cfg import slc_cfg
+from datagen.create_folds import get_ts_orient
+from datagen.slc.slc_cfg import slc_cfg
 import solaris.raster_tile as raster_tile
 import solaris.vector_tile as vector_tile
 from solaris.vector_mask import mask_to_poly_geojson

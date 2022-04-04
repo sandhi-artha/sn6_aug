@@ -9,7 +9,7 @@ import numpy as np
 from sklearn.cluster import KMeans
 
 from lib.raster import get_tile_bounds
-from datasets.dg_cfg import dg_cfg
+from datagen.dg_cfg import dg_cfg
 
 
 

@@ -10,9 +10,9 @@ from rasterio import features as feat
 import geopandas as gpd
 import tensorflow as tf
 
-from datasets.datagen import _bytes_feature, _int64_feature
-from datasets.datagen import serialize_image, serialize_label
-from datasets.slc.slc_cfg import slc_cfg
+from datagen.datagen import _bytes_feature, _int64_feature
+from datagen.datagen import serialize_image, serialize_label
+from datagen.slc.slc_cfg import slc_cfg
 from lib.proc import to_hwc, normalize, hist_clip
 from lib.raster import get_data_region_idx
 
