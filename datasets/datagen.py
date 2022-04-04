@@ -27,13 +27,6 @@ from lib.proc import to_hwc
 from lib.viz import show_hist, show_stats
 
 
-if dg_cfg['mode'] == 'sar':
-    MODE = 'SAR-Intensity'
-elif dg_cfg['mode'] == 'pan':
-    MODE = 'PAN'
-else:
-    print('Invalid dataset, use "pan" or "sar"')
-    sys.exit()
 
 
 ### GET DATA ###
@@ -158,8 +151,6 @@ def create_tfrecord(raster_paths, cfg, base_fn, orient):
                 # write tfrecords
                 example = tf.train.Example(features=tf.train.Features(feature=feature))
                 writer.write(example.SerializeToString())
-                break
-        break
 
 
 ### CONFIG ###
@@ -243,6 +234,14 @@ if __name__=='__main__':
             dg_cfg = json.load(fp)
     else:
         print('using saved config')
+
+    if dg_cfg['mode'] == 'sar':
+        MODE = 'SAR-Intensity'
+    elif dg_cfg['mode'] == 'pan':
+        MODE = 'PAN'
+    else:
+        print('Invalid dataset, use "pan" or "sar"')
+        sys.exit()
 
     if dg_cfg['orient'] == 0 or dg_cfg['orient'] == 2:
         datagen_orient(0)
