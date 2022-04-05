@@ -114,7 +114,6 @@ class DataLoader():
                 ax1.imshow(img.numpy()[:,:,0])
                 ax2.imshow(label.numpy()[:,:,0])
                 plt.show()
-        
 
     def get_train_ds(self):
         """
@@ -153,13 +152,23 @@ class DataLoader():
         return ds
 
     def load_data(self):
-        train_fns, train_steps = get_filenames(
-            self.cfg, self.cfg.TRAIN_SPLITS, self.cfg.TRAIN_PATH)
-        val_fns, val_steps = get_filenames(
-            self.cfg, self.cfg.VAL_SPLITS, self.cfg.VAL_PATH)
-        train_ds = self.get_train_ds(train_fns)
-        val_ds = self.get_val_ds(val_fns)
-        return train_ds, train_steps, val_ds, val_steps
+        train_ds = self.get_train_ds()
+        val_ds = self.get_val_ds()
+        return train_ds, val_ds
+    
+    def show_predictions(self, model, n_show, n_skip):
+        pred_reader = Reader(self.image_ch, self.val_reduce.aug, load_fn=True)
+        ds = tf.data.TFRecordDataset(self.val_fns, num_parallel_reads=AUTOTUNE) \
+            .map(pred_reader.read, num_parallel_calls=AUTOTUNE)
+        
+        for img, mask, fn in ds.skip(n_skip).take(n_show):
+            img = tf.expand_dims(img, axis=0)
+            mask = tf.expand_dims(mask, axis=0)
+            pred_mask = model(img)
+            pred_mask = create_binary_mask(pred_mask)
+            print(fn.numpy().decode())
+            display_img([img[0], mask[0], pred_mask[0]])
+
 
 
 
@@ -204,8 +213,26 @@ def get_filenames(cfg, splits, ds_path, off_ds_path='', verbose=False):
     
     return fns, steps
 
+def create_binary_mask(pred_mask):
+    thresh = 0.5
+    return tf.where(pred_mask>=thresh, 1, 0)
 
+def display_img(display_list):
+    title = ['Input Tile', 'True Maks', 'Predicted Mask']
+    plt.figure(figsize=(18,8))
+    
+    for i in range(len(display_list)):
+        if display_list[i].shape[-1] == 1:
+            cmap = 'gray'
+        else:
+            cmap = None
+        plt.subplot(1, len(display_list), i+1)
+        plt.title(title[i], fontsize=24)
+        plt.imshow(tf.keras.preprocessing.image.array_to_img(display_list[i]), cmap=cmap)
+        plt.axis('off')
 
+    plt.tight_layout()
+    plt.show()
 
 
 
