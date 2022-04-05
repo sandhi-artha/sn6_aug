@@ -67,7 +67,7 @@ ev_cfg = {
     'chart'         : 'tp',     # 'tp','recall'
 }
 
-if not tr_cfg['IS_CB_LRS']:
+if tr_cfg['IS_CB_LRS']:
     LR_START = tr_cfg['L_RATE'] # 1e-7 # 1e-6, 1e-7, 1e-8
     LR_MIN = 3e-6  # 3e-6, 3e-7, 3e-8
     LR_MAX = tr_cfg['L_RATE']
