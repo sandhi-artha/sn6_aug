@@ -1,10 +1,10 @@
 __pycache__
 .vscode
-*.ipynb
 *.tfrec
 *.csv
 *.h5
 *.geojson
+wandb
 test
 evaluate
 preds
