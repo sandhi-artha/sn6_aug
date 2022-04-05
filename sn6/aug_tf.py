@@ -223,9 +223,9 @@ class AugTF():
 
 
 
+### Legacy
 
-
-def get_aug_tf_fun(self, cfg):
+def get_aug_tf_fun(cfg):
     """transformation list for tf ops"""
     aug_list = []
     if cfg.IS_HFLIP:

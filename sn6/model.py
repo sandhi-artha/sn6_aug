@@ -3,16 +3,15 @@
 import os
 import json
 import math  # augmentation and LR_ramp
+import random
 import sys
-from functools import partial
 
-from sn6.gpu_dataloader import get_training_dataset, get_validation_dataset
 BASE_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(BASE_PATH)
 
+import numpy as np
 import tensorflow as tf
 from tensorflow.keras import backend as K
-# import tensorflow_addons as tfa
 import segmentation_models as sm
 from tensorflow.keras.callbacks import EarlyStopping, LearningRateScheduler, ReduceLROnPlateau
 import wandb
@@ -20,17 +19,11 @@ from wandb.keras import WandbCallback
 import yaml
 
 from sn6.cfg import lrfn
+from sn6.dataloader import DataLoader
+from sn6.aug_albu import AugAlbu
+from sn6.aug_tf import AugTF, get_reduce_fun
 
-# print(f'tensorflow_addons version: {tfa.__version__}')
 # IS_TPU = 1 if tr_cfg['DEVICE'] == 'tpu' else 0
-AUTOTUNE = tf.data.experimental.AUTOTUNE
-TFREC_FORMAT = {
-    'image': tf.io.FixedLenFeature([], tf.string),
-    'label': tf.io.FixedLenFeature([], tf.string),
-    'data_idx': tf.io.VarLenFeature(tf.int64),
-    'fn': tf.io.FixedLenFeature([], tf.string),
-    'orient': tf.io.FixedLenFeature([], tf.int64),
-}
 
 class Dict2Obj(object):
     """Turns a dictionary into a class"""
@@ -52,6 +45,7 @@ class BFE():
         seed_everything(self.cfg.SEED)  # set seed
     
     def load_data(self):
+        """create dataloader object with selected reduce and aug function"""
         train_reduce = get_reduce_fun(self.cfg.REDUCE_RES)
         val_reduce = get_reduce_fun(self.cfg.VAL_REDUCE_RES)
 
@@ -67,7 +61,9 @@ class BFE():
             self.cfg, train_reduce, val_reduce, aug_albu_fun, aug_tf_fun)
 
     def load_model(self, model_path=None, wandb_path=None):
-        """either download new model, or use pt ones from local, or from wandb"""
+        """create model object by either download new model,
+            or use pt model from local,
+            or download from wandb"""
         if model_path:
             self.model = load_pretrained_model(model_path)
         elif wandb_path:
@@ -79,7 +75,7 @@ class BFE():
 
     def train(self):
         train_ds, train_steps, val_ds, val_steps = self.dataloader.load_data()
-        callbacks = get_cb_list(self.cfg, self.IS_LOG)
+        callbacks = get_cb_list(self.cfg, self.is_log)
         print('starting training..')
         self.history = self.model.fit(
             train_ds, 
@@ -93,7 +89,8 @@ class BFE():
         if self.is_log:  # finish run session in wandb
             self.run.finish()
 
-
+    def view_results(self, num_images):
+        self.dataloader.show_predictions(self.model, num_images)
 
 
 
@@ -110,111 +107,6 @@ class BFE():
 
 
 
-
-
-
-
-def read_tfrecord(feature):
-    """data_idx is [r0,r1,c0,c1]
-    config controlled by global flags
-    parse a serialized example
-    if off_aug: use prob to select one image
-    reshape to return shape of img
-    rescale image to have max val of 1.0
-    """
-    # parse features
-    features = tf.io.parse_single_example(feature, TFREC_FORMAT)
-    image = tf.io.parse_tensor(features["image"], tf.float32)
-    label = tf.io.parse_tensor(features["label"], tf.bool)
-    label = tf.cast(label, tf.float32)
-    data_idx = tf.sparse.to_dense(features["data_idx"])
-    fn = features['fn']
-
-    h = data_idx[1] - data_idx[0]
-    w = data_idx[3] - data_idx[2]
-    
-    image = tf.reshape(image, [h, w, IMAGE_CH])
-    label = tf.reshape(label, [h, w, 1])
-
-    image = tf.math.divide(image, tf.math.reduce_max(image))
-
-    return image, label, fn
-
-def augment(image, label, fn, albu_transforms):
-    
-    def aug_transform(image, label):
-        """spatial transformation done on both image and label
-        pixel trans only on image"""
-        transform_data = albu_transforms(image=image, mask=label)
-        return transform_data['image'], transform_data['mask']
-
-    def aug_albu(image, label):
-        """wrapper to feed numpy format data to TRANSFORMS"""
-        shape = tf.shape(image)
-        aug_img, aug_mask = tf.numpy_function(
-            func=aug_transform, inp=[image, label], Tout=[tf.float32, tf.float32])
-        
-        # add back shape bcz numpy_function makes it unknown
-        aug_img = tf.reshape(aug_img, shape)
-        aug_mask = tf.reshape(aug_mask, shape)
-        return aug_img, aug_mask
-
-    if IS_AUG_ALBU:
-        image, label = aug_albu(image, label)
-    
-    image, label = REDUCE_RES(image, label)
-
-    if IS_AUG_TF:
-        image, label = aug_tf(image, label)
-
-
-    return image, label, fn
-
-def get_training_dataset(
-    self,
-    filenames,
-    load_fn=False,
-    ordered=False,
-    shuffle=True):
-    """
-    takes list of .tfrec files, read using TFRecordDataset,
-    parse and decode using read_tfrecord func,
-    returns : image, label
-        both without shape and with IMAGE_DIM resolution
-    ordered=True will read each files in same order.
-    """
-    options = tf.data.Options()
-    if not ordered: options.experimental_deterministic = False
-    ds = tf.data.TFRecordDataset(filenames, num_parallel_reads=AUTOTUNE)
-    ds = ds.with_options(options)
-    ds = ds.map(self.read_tfrecord, num_parallel_calls=AUTOTUNE)
-    ds = ds.map(self.augment, num_parallel_calls=AUTOTUNE)
-    if not load_fn:
-        ds = ds.map(remove_fn, num_parallel_calls=AUTOTUNE)
-    ds = ds.repeat()
-    if shuffle:
-        ds = ds.shuffle(self.cfg.SHUFFLE_BUFFER)
-    ds = ds.batch(self.cfg.BATCH_SIZE).prefetch(AUTOTUNE)
-    return ds
-
-def get_validation_dataset(self):
-    """
-    only variation is reduce function (will be pad_resize anyway)            
-    """
-    options = tf.data.Options()
-    options.experimental_deterministic = False
-    ds = tf.data.TFRecordDataset(files, num_parallel_reads=AUTOTUNE)
-    ds = ds.with_options(options)
-    ds = ds.map(read_tfrecord_val, num_parallel_calls=AUTOTUNE)
-    # ds = ds.cache()
-    ds = ds.batch(tr_cfg['BATCH_SIZE'])
-    ds = ds.prefetch(AUTOTUNE)
-    return ds
-
-
-
-def view_results(self, num_images):
-    show_predictions(self.model, self.VAL_FN, num_images)
         
 
 
@@ -237,45 +129,6 @@ def seed_everything(seed):
     np.random.seed(seed)
     os.environ['PYTHONHASHSEED'] = str(seed)
     tf.random.set_seed(seed)
-
-def count_data_items(filenames):
-    # the number of data items is written in the name of the .tfrec files, 
-    # i.e. test10-687.tfrec = 687 data items
-    n = [int(re.compile(r"-([0-9]*)\.").search(filename).group(1)) for filename in filenames]
-    
-    return np.sum(n)
-
-def get_filenames(cfg, splits, ds_path, off_ds_path='', out=False):
-    """
-    splits : list
-        contain what folds to use during training or val
-    ds_path : str
-        path to train or val dataset
-    off_ds_path: str
-        path to speckle filtered dataset, will load along normal dataset
-    """
-    fns = []  # will become ['foldx_ox-yy-zz.tfrec', ...]
-    for fold in splits:
-        fol_path = os.path.join(ds_path, f'{fold}_o{cfg.ORIENT}*.tfrec')
-        fold_fns  = tf.io.gfile.glob(fol_path)
-        for fn in fold_fns:
-            fns.append(fn)
-
-        if off_ds_path:
-            fol_path = os.path.join(off_ds_path, f'{fold}_o{cfg.ORIENT}*.tfrec')
-            fold_fns  = tf.io.gfile.glob(fol_path)
-            for fn in fold_fns:
-                fns.append(fn)
-    
-    random.shuffle(fns)
-
-    num_img = count_data_items(fns)
-    steps = num_img//cfg.BATCH_SIZE
-
-    if out:
-        print(f'{splits} files: {len(fns)} with {num_img} images')
-    
-    return fns, steps
 
 def get_config_wandb(run_path):
     """restore model and read yaml as dict"""
