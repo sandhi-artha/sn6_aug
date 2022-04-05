@@ -20,8 +20,8 @@ import yaml
 
 from sn6.cfg import lrfn
 from sn6.dataloader import DataLoader
-from sn6.aug_albu import AugAlbu
-from sn6.aug_tf import AugTF, get_reduce_fun
+from aug.aug_albu import AugAlbu
+from aug.aug_tf import AugTF, get_reduce_fun
 
 # IS_TPU = 1 if tr_cfg['DEVICE'] == 'tpu' else 0
 
@@ -46,8 +46,8 @@ class BFE():
     
     def load_data(self):
         """create dataloader object with selected reduce and aug function"""
-        train_reduce = get_reduce_fun(self.cfg.REDUCE_RES)
-        val_reduce = get_reduce_fun(self.cfg.VAL_REDUCE_RES)
+        train_reduce = get_reduce_fun(self.cfg.REDUCE_RES, self.cfg)
+        val_reduce = get_reduce_fun(self.cfg.VAL_REDUCE_RES, self.cfg)
 
         aug_albu = AugAlbu(self.cfg)
         if aug_albu.IS_AUG: aug_albu_fun = aug_albu.transform

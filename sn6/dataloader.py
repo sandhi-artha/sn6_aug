@@ -20,10 +20,11 @@ TFREC_FORMAT = {
 
 class Reader():
     def __init__(
-        self, image_ch, reduce_fun, load_fn=False,
-        aug_albu_fun=None, aug_tf_fun=None
+        self, image_ch, reduce_fun, aug_albu_fun=None,
+        aug_tf_fun=None, load_fn=False,
     ):
-        """reads tfrecord and returns tf.Data object"""
+        """reads tfrecord and returns tf.Data object.
+        takes input the `.aug` for reduce, aug_tf and aug_albu"""
         self.image_ch = image_ch
         self.reduce_fun = reduce_fun
         self.load_fn = load_fn
@@ -87,24 +88,33 @@ class DataLoader():
         self.val_fns, self.val_steps = get_filenames(
             cfg, cfg.VAL_SPLITS, cfg.VAL_PATH)
 
-    def preview_train_ds(self, n_show):
+    def preview_train_ds(self, n_show=4, n_rep=1, min_view=False):
         """loads train_ds and show n_show images to view augmented results"""
         prev_reader = Reader(
-            self.image_ch, self.train_reduce, self.aug_albu_fun, self.aug_tf_fun,
+            self.image_ch, self.train_reduce.aug, self.aug_albu_fun, self.aug_tf_fun,
             load_fn=True)
         options = tf.data.Options()  # reads data ordered to show consistent examples
         ds = tf.data.TFRecordDataset(self.train_fns, num_parallel_reads=AUTOTUNE) \
             .with_options(options) \
-            .map(prev_reader.read, num_parallel_calls=AUTOTUNE)
+            .map(prev_reader.read, num_parallel_calls=AUTOTUNE) \
+            .repeat()
+        if min_view:
+            for img, label, fn in ds.take(n_show).repeat(n_rep):
+                f,[ax1,ax2] = plt.subplots(1,2,figsize=(4,2))
+                ax1.imshow(img.numpy()[:,:,0])
+                ax1.axis('off')
+                ax2.imshow(label.numpy()[:,:,0])
+                ax2.axis('off')
+                plt.tight_layout()
+                plt.show()
+        else:
+            for img, label, fn in ds.take(n_show).repeat(n_rep):
+                f,[ax1,ax2] = plt.subplots(1,2,figsize=(6,3))
+                print(fn.numpy())
+                ax1.imshow(img.numpy()[:,:,0])
+                ax2.imshow(label.numpy()[:,:,0])
+                plt.show()
         
-        for img, label, fn in ds.take(n_show):
-            f,[ax1,ax2] = plt.subplots(1,2,figsize=(6,3))
-            print(fn.numpy())
-            ax1.imshow(img.numpy()[:,:,0])
-            ax2.imshow(label.numpy()[:,:,0])
-            plt.show()
-
-        return ds
 
     def get_train_ds(self):
         """
@@ -115,7 +125,7 @@ class DataLoader():
         ordered=True will read each files in same order.
         """
         train_reader = Reader(
-            self.image_ch, self.train_reduce, self.aug_albu_fun, self.aug_tf_fun)
+            self.image_ch, self.train_reduce.aug, self.aug_albu_fun, self.aug_tf_fun)
 
         options = tf.data.Options()
         options.experimental_deterministic = False
@@ -132,7 +142,7 @@ class DataLoader():
         """
         only variation is reduce function (will be pad_resize anyway)            
         """
-        val_reader = Reader(self.image_ch, self.val_reduce)
+        val_reader = Reader(self.image_ch, self.val_reduce.aug)
         options = tf.data.Options()
         options.experimental_deterministic = False
         ds = tf.data.TFRecordDataset(self.val_fns, num_parallel_reads=AUTOTUNE) \
@@ -162,37 +172,37 @@ def count_data_items(filenames):
     return np.sum(n)
 
 def get_filenames(cfg, splits, ds_path, off_ds_path='', verbose=False):
-        """
-        collect tfrecord filenames for selected splits (folds)
-        splits : list
-            contain what folds to use during training or val
-        ds_path : str
-            path to train or val dataset
-        off_ds_path: str
-            path to speckle filtered dataset, will load along normal dataset
-        """
-        fns = []  # will become ['foldx_ox-yy-zz.tfrec', ...]
-        for fold in splits:
-            fol_path = os.path.join(ds_path, f'{fold}_o{cfg.ORIENT}*.tfrec')
+    """
+    collect tfrecord filenames for selected splits (folds)
+    splits : list
+        contain what folds to use during training or val
+    ds_path : str
+        path to train or val dataset
+    off_ds_path: str
+        path to speckle filtered dataset, will load along normal dataset
+    """
+    fns = []  # will become ['foldx_ox-yy-zz.tfrec', ...]
+    for fold in splits:
+        fol_path = os.path.join(ds_path, f'{fold}_o{cfg.ORIENT}*.tfrec')
+        fold_fns  = tf.io.gfile.glob(fol_path)
+        for fn in fold_fns:
+            fns.append(fn)
+
+        if off_ds_path:
+            fol_path = os.path.join(off_ds_path, f'{fold}_o{cfg.ORIENT}*.tfrec')
             fold_fns  = tf.io.gfile.glob(fol_path)
             for fn in fold_fns:
                 fns.append(fn)
+    
+    random.shuffle(fns)
 
-            if off_ds_path:
-                fol_path = os.path.join(off_ds_path, f'{fold}_o{cfg.ORIENT}*.tfrec')
-                fold_fns  = tf.io.gfile.glob(fol_path)
-                for fn in fold_fns:
-                    fns.append(fn)
-        
-        random.shuffle(fns)
+    num_img = count_data_items(fns)
+    steps = num_img//cfg.BATCH_SIZE
 
-        num_img = count_data_items(fns)
-        steps = num_img//cfg.BATCH_SIZE
-
-        if verbose:
-            print(f'{splits} files: {len(fns)} with {num_img} images')
-        
-        return fns, steps
+    if verbose:
+        print(f'{splits} files: {len(fns)} with {num_img} images')
+    
+    return fns, steps
 
 
 
