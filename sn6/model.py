@@ -1,8 +1,4 @@
-# returns model compiled
-# mod by cfg
 import os
-import json
-import math  # augmentation and LR_ramp
 import random
 import sys
 
@@ -22,8 +18,8 @@ from sn6.cfg import lrfn
 from sn6.dataloader import DataLoader
 from aug.aug_albu import AugAlbu
 from aug.aug_tf import AugTF, get_reduce_fun
+from lib.viz import plot_metrics
 
-# IS_TPU = 1 if tr_cfg['DEVICE'] == 'tpu' else 0
 
 class Dict2Obj(object):
     """Turns a dictionary into a class"""
@@ -32,17 +28,20 @@ class Dict2Obj(object):
 
 class BFE():
     """Building Footprint Extractor"""
-    def __init__(self, cfg, is_log, project_name):
+    def __init__(self, cfg):
+        self.dict_cfg = cfg
         self.cfg = Dict2Obj(cfg)
         self.image_ch = len(self.cfg.SAR_CH)
-        self.is_log = is_log
-        if is_log:
-            self.run = wandb.init(
-                project=project_name, name=cfg['NAME'],
-                config=cfg, reinit=True)
-        else:
-            self.run = None
+        self.is_log = False
         seed_everything(self.cfg.SEED)  # set seed
+    
+    def log_wandb(self, project_name, model_name, run):
+        """log train results and upload model to wandb"""
+        self.is_log = True
+        run_name = '{}_{}'.format(model_name, run)
+        self.run = wandb.init(
+            project=project_name, name=run_name,
+            config=self.dict_cfg, reinit=True)
     
     def load_data(self):
         """create dataloader object with selected reduce and aug function"""
@@ -73,54 +72,25 @@ class BFE():
         
         print(f'Total params: {self.model.count_params():,}')
 
-    def train(self):
-        train_ds, train_steps, val_ds, val_steps = self.dataloader.load_data()
+    def train(self, verbose=2):
+        train_ds, val_ds = self.dataloader.load_data()
         callbacks = get_cb_list(self.cfg, self.is_log)
         print('starting training..')
         self.history = self.model.fit(
             train_ds, 
-            steps_per_epoch=train_steps, 
+            steps_per_epoch=self.dataloader.train_steps, 
             epochs=self.cfg.EPOCHS,
             validation_data=val_ds,
-            validation_steps=val_steps,
+            validation_steps=self.dataloader.val_steps,
             callbacks=callbacks,
-            verbose=2)
+            verbose=verbose)
 
         if self.is_log:  # finish run session in wandb
             self.run.finish()
 
-    def view_results(self, num_images):
-        self.dataloader.show_predictions(self.model, num_images)
-
-
-
-    
-# self.TRAIN_FN, self.TRAIN_STEPS = get_filenames(
-#     self.cfg.TRAIN_SPLITS, self.cfg.TRAIN_PATH)
-# self.train_ds = self.get_training_dataset(self.TRAIN_FN)
-
-# self.VAL_FN, self.VAL_STEPS = get_filenames(
-#     self.cfg.VAL_SPLITS, self.cfg.VAL_PATH)
-# self.val_ds = self.get_validation_dataset(self.VAL_FN)
-
-
-
-
-
-        
-
-
-
-
-
-
-
-
-
-
-
-
-
+    def view_results(self, n_show=3, n_skip=0):
+        plot_metrics(self.history.history)
+        self.dataloader.show_predictions(self.model, n_show, n_skip)
 
 
 
@@ -242,6 +212,7 @@ def load_wandb_model(wandb_path):
     model_path = model_file.name
     model_file.close()
     return load_pretrained_model(model_path)
+
 
 ### CALLBACKS ###
 def get_cb_list(cfg, is_log):
