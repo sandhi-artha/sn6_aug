@@ -3,35 +3,38 @@ import tensorflow as tf
 
 tr_cfg = {
     # log cfg
-    'RUN'           : 1,   # REMEMBER TO INCREMENT!!
+    'RUN'           : 1,            # REMEMBER TO INCREMENT!!
     'COMMENTS'      : 'gpu experiments',
     
     # dataset cfg
-    'IMAGE_DIM'     : 900,  # must be the same as tfrecord res
-    'IMAGE_RS'      : 320,
-    'TRAIN_PATH'    : '../dataset/sn6_aug/gpu_tfrec', #'sn6-900-uint8',  # kaggle ds name
-    'OFF_AUG_PATH'  : 'sn6-crop-off/elee',
-    'TRAIN_SPLITS'  : ['fold0', 'fold1'],
-    'VAL_PATH'      : '../dataset/sn6_aug/gpu_tfrec', #'base-val-8',  # if None, don't validate
-    'VAL_SPLITS'    : ['fold4'],  # will only be considered if val path exist and IS_CV=0
-    'SAR_CH'        : [1], # [0,3,2],      # HH, VV, VH. 0 = all channel
+    'IMAGE_RS'      : 320,          # target resolution
+    'TRAIN_PATH'    : '../../image_folder/sn6-crop',    # kaggle ds name
+    'TRAIN_SPLITS'  : ['fold0', 'fold1'],               # folds used for training
+    'VAL_PATH'      : '../../image_folder/sn6-crop',    # if None, don't validate
+    'VAL_SPLITS'    : ['fold4'],    # folds used for validation
+    'SAR_CH'        : [1],          # HH=1, HV=2, VH=3, VV=4. use None to read all channel
     'ORIENT'        : 1,
     
-    # training cfg
-    'DEVICE'        : 'gpu',
-    'SEED'          : 17,
-    'BACKBONE'      : 'effb4',            # 'effb4', 'res50'
-    'ARC'           : 'fpn',              # 'unet', 'fpn'
+    # model cfg
+    'BACKBONE'      : 'effb4',      # 'effb4', 'res50'
+    'ARC'           : 'fpn',        # 'unet', 'fpn'
     'WEIGHT'        : None,         # 'imagenet', 'pre-trained from:..', None
-    'LF'            : 'dice',    # 'bce', 'jaccard_distance', 'focal', 'giou'
-    'L_RATE'        : 32e-4,       # 32e-4, 4e-4, 5e-5
-    'IS_CV'         : 0,   # cross validation
-    'IS_3_FOLD'     : 0,   # do same training 3x to get an average value
-    'IS_CB_ES'      : 0,   # early stopping
-    'IS_CB_LRS'     : 0,   # learning rate scheduler, if false uses lr_ramp
     
-    # reduce_resize
+    # training cfg
+    'SEED'          : 17,
+    'BATCH_SIZE'    : 8,
+    'SHUFFLE_BUFFER': 150,
+    'EPOCHS'        : 60,
+    'LF'            : 'dice',       # 'bce', 'jaccard_distance', 'focal', 'giou'
+    'L_RATE'        : 32e-4,        # 32e-4, 4e-4, 5e-5
+    'IS_CV'         : 0,            # cross validation
+    'IS_3_FOLD'     : 0,            # do same training 3x to get an average value
+    'IS_CB_ES'      : 0,            # early stopping
+    'IS_CB_LRS'     : 0,            # learning rate scheduler, if false uses lr_ramp
+    
+    # reduce method: 'resize', 'pad_resize', 'random_crop', 'random_crop_resize'
     'REDUCE_RES'    : 'pad_resize',
+    'COMB_REDUCE'   : True, # when using rand_crop or rand_crop_resize, randomize reduce method with pad_resize
     'VAL_REDUCE_RES': 'pad_resize',
 
     # spatial transformations
@@ -55,7 +58,8 @@ tr_cfg = {
     'IS_COARSE_DO'  : 0,
 
     # offline augs
-    'OFF_DS'        : '',
+    'OFF_DS'        : '',   # 'elee', 'frost', 'gmap' NOT ADOPTED YET
+    'OFF_AUG_PATH'  : '',
 }
 
 
