@@ -101,9 +101,9 @@ class DataLoader():
         if min_view:
             for img, label, fn in ds.take(n_show).repeat(n_rep):
                 f,[ax1,ax2] = plt.subplots(1,2,figsize=(4,2))
-                ax1.imshow(img.numpy()[:,:,0])
+                ax1.imshow(img.numpy()[:,:,0], cmap='gray')
                 ax1.axis('off')
-                ax2.imshow(label.numpy()[:,:,0])
+                ax2.imshow(label.numpy()[:,:,0], cmap='gray')
                 ax2.axis('off')
                 plt.tight_layout()
                 plt.show()
@@ -111,8 +111,8 @@ class DataLoader():
             for img, label, fn in ds.take(n_show).repeat(n_rep):
                 f,[ax1,ax2] = plt.subplots(1,2,figsize=(6,3))
                 print(fn.numpy())
-                ax1.imshow(img.numpy()[:,:,0])
-                ax2.imshow(label.numpy()[:,:,0])
+                ax1.imshow(img.numpy()[:,:,0], cmap='gray')
+                ax2.imshow(label.numpy()[:,:,0], cmap='gray')
                 plt.show()
 
     def get_train_ds(self):

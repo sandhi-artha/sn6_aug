@@ -59,3 +59,38 @@ class AugAlbu():
         image = tf.reshape(aug_img, [h,w,c]) 
         label = tf.reshape(aug_mask, [h,w,1])
         return image, label
+
+
+def update_aug_albu(
+    cfg,
+    is_mot_blur=0,
+    is_sharpen=0,
+    is_clahe=0,
+    is_gaus_noise=0,
+    is_speckle_noise=0,
+    is_coarse_do=0,
+):
+    """transformation list for augmentations in albu"""
+    # update cfg
+    cfg['IS_MOT_BLUR'] = is_mot_blur
+    cfg['IS_SHARPEN'] = is_sharpen
+    cfg['IS_CLAHE'] = is_clahe
+    cfg['IS_GAUS_NOISE'] = is_gaus_noise
+    cfg['IS_SPECKLE_NOISE'] = is_speckle_noise
+    cfg['IS_COARSE_DO'] = is_coarse_do
+
+    logs = []
+    if is_mot_blur:
+        logs.append('mot_blur')
+    if is_sharpen:
+        logs.append('sharpen')
+    if is_clahe:
+        logs.append('clahe')
+    if is_gaus_noise:
+        logs.append('gaus_noise')
+    if is_speckle_noise:
+        logs.append('speckle_noise')
+    if is_coarse_do:
+        logs.append('coarse_do')
+    print(f'active aug albu: {logs}')
+    return cfg

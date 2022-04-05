@@ -262,3 +262,42 @@ class AugTF():
             image, label = aug.aug(image, label)
         
         return image, label
+
+def update_aug_tf(
+    cfg,
+    is_hflip=0,
+    is_vflip=0,
+    is_rot90=0,
+    is_fine_rot=0,
+    is_shear_x=0,
+    is_shear_y=0,
+    rot_range=[-10,10],
+    rot_reflect=0,
+    shear_range=[-10,10]
+):
+    """configure augmentations from tf"""
+    cfg['IS_HFLIP'] = is_hflip
+    cfg['IS_VFLIP'] = is_vflip
+    cfg['IS_ROT90'] = is_rot90
+    cfg['IS_FINE_ROT'] = is_fine_rot
+    cfg['IS_SHEAR_X'] = is_shear_x
+    cfg['IS_SHEAR_Y'] = is_shear_y
+    cfg['ROT_RANGE'] = rot_range
+    cfg['ROT_REFLECT'] = rot_reflect
+    cfg['SHEAR_RANGE'] = shear_range
+    
+    logs = []
+    if is_hflip:
+        logs.append('hflip')
+    if is_vflip:
+        logs.append('vflip')
+    if is_rot90:
+        logs.append('rot90')
+    if is_fine_rot:
+        logs.append(f'fine_rot: [{rot_range[0]},{rot_range[1]}]')
+    if is_shear_x:
+        logs.append(f'shear_x: [{shear_range[0]},{shear_range[1]}]')
+    if is_shear_y:
+        logs.append(f'shear_y: [{shear_range[0]},{shear_range[1]}]')
+    print(f'active aug tf: {logs}')
+    return cfg
