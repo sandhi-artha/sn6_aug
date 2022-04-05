@@ -32,31 +32,57 @@ class PadResize():
         return image, label
 
 class RandomCrop():
-    def __init__(self, target_res, image_ch):
-        """
-        target_res: target resolution of square image
-        image_ch: num of channels"""
-        self.size = [target_res, target_res]
-        self.image_ch = image_ch
-    
-    def aug(self, image, label):
-        """crops a patch of size IMAGE_RS, preserves scale"""
-        stacked_image = tf.concat([image, label], axis=-1)
-        cropped_image = tf.image.random_crop(
-            stacked_image, size=[*self.size, self.image_ch+1])
-        
-        # for label, if you want [w,h,1] shape, use -1:
-        return cropped_image[:,:,:self.image_ch], cropped_image[:,:,-1:]
-
-class RandomCropResize():
-    def __init__(self, target_res, image_ch):
+    def __init__(self, target_res, image_ch, comb=True):
         """
         target_res: target resolution of square image
         image_ch: num of channels"""
         self.target_res = target_res
         self.image_ch = image_ch
+        self.comb = comb
+    
+    def _pad_resize(self, image, label):
+        image = tf.image.resize_with_pad(image, self.target_res, self.target_res)
+        label = tf.image.resize_with_pad(label, self.target_res, self.target_res)
+        return image, label
+    
+    def _random_crop(self, image, label):
+        """crops a patch of size IMAGE_RS, preserves scale"""
+        stacked_image = tf.concat([image, label], axis=-1)
+        cropped_image = tf.image.random_crop(
+            stacked_image, size=[self.target_res, self.target_res, self.image_ch+1])
+        
+        # for label, if you want [w,h,1] shape, use -1:
+        return cropped_image[:,:,:self.image_ch], cropped_image[:,:,-1:]
 
     def aug(self, image, label):
+        """if comb is True, assigns 50% chance of doing either
+        random crop or pad_resize"""
+        if self.comb:
+            p_res = tf.random.uniform([], 0, 1.0, dtype=tf.float32)
+        else:
+            p_res = tf.constant(1.0)
+        image, label = tf.cond(
+            p_res>.5,
+            lambda: self._random_crop(image, label),    # if true
+            lambda: self._pad_resize(image, label)      # if false
+        )
+        return image, label
+
+class RandomCropResize():
+    def __init__(self, target_res, image_ch, comb=True):
+        """
+        target_res: target resolution of square image
+        image_ch: num of channels"""
+        self.target_res = target_res
+        self.image_ch = image_ch
+        self.comb = comb
+
+    def _pad_resize(self, image, label):
+        image = tf.image.resize_with_pad(image, self.target_res, self.target_res)
+        label = tf.image.resize_with_pad(label, self.target_res, self.target_res)
+        return image, label
+
+    def _random_crop_resize(self, image, label):
         """does 2 ops
         1. random crop with random scale as percentage from minimum length
         2. resize the patch to size IMAGE_RS
@@ -86,12 +112,27 @@ class RandomCropResize():
             [self.target_res, self.target_res])
 
         return image, label
+    
+    def aug(self, image, label):
+        """if comb is True, assigns 50% chance of doing either
+        random crop or pad_resize"""
+        if self.comb:
+            p_res = tf.random.uniform([], 0, 1.0, dtype=tf.float32)
+        else:
+            p_res = tf.constant(1.0)
+        image, label = tf.cond(
+            p_res>.5,
+            lambda: self._random_crop_resize(image, label),     # if true
+            lambda: self._pad_resize(image, label)              # if false
+        )
+        return image, label
 
 
 def get_reduce_fun(method, cfg):
     """returns a reduce function"""
     image_ch = len(cfg.SAR_CH)
     target_res = cfg.IMAGE_RS
+    comb = cfg.COMB_REDUCE
     if method=='resize':
         return Resize(target_res, image_ch)
 
@@ -99,10 +140,10 @@ def get_reduce_fun(method, cfg):
         return PadResize(target_res, image_ch)
     
     elif method=='random_crop':
-        return RandomCrop(target_res, image_ch)
+        return RandomCrop(target_res, image_ch, comb=comb)
     
     elif method=='random_crop_resize':
-        return RandomCropResize(target_res, image_ch)
+        return RandomCropResize(target_res, image_ch, comb=comb)
     else:
         raise ValueError(f'"{method}" reduce method not found')
         
@@ -111,7 +152,7 @@ def get_reduce_fun(method, cfg):
 
 ### TF AUG ###
 class HFlip():
-    def aug(self, image, label):
+    def aug(image, label):
         p_hflip = tf.random.uniform([], 0, 1.0, dtype=tf.float32)
         if p_hflip >= .5:
             image = tf.image.flip_left_right(image)
@@ -119,7 +160,7 @@ class HFlip():
         return image, label
 
 class VFlip():
-    def aug(self, image, label):
+    def aug(image, label):
         p_vflip = tf.random.uniform([], 0, 1.0, dtype=tf.float32)
         if p_vflip >= .5:
             image = tf.image.flip_up_down(image)
@@ -127,7 +168,7 @@ class VFlip():
         return image, label
 
 class Rot90():
-    def aug(self, image, label):
+    def aug(image, label):
         """applies either 90, 180 or 270 degree rotation"""
         p_rotate = tf.random.uniform([], 0, 1.0, dtype=tf.float32)
         if p_rotate > .75:
@@ -204,13 +245,13 @@ class AugTF():
                 reflect=cfg.ROT_REFLECT))
         if cfg.IS_SHEAR_X:
             self.aug_list.append(Shear(
-                min_rad=cfg.SHEAR_RANGE[0],
-                max_rad=cfg.SHEAR_RANGE[1],
+                min_shear=cfg.SHEAR_RANGE[0],
+                max_shear=cfg.SHEAR_RANGE[1],
                 axis='x'))
         if cfg.IS_SHEAR_Y:
             self.aug_list.append(Shear(
-                min_rad=cfg.SHEAR_RANGE[0],
-                max_rad=cfg.SHEAR_RANGE[1],
+                min_shear=cfg.SHEAR_RANGE[0],
+                max_shear=cfg.SHEAR_RANGE[1],
                 axis='y'))
 
         self.IS_AUG = len(self.aug_list)>0
