@@ -7,6 +7,7 @@ import random
 
 import numpy as np
 import tensorflow as tf
+import matplotlib.pyplot as plt
 
 AUTOTUNE = tf.data.experimental.AUTOTUNE
 TFREC_FORMAT = {
@@ -17,18 +18,12 @@ TFREC_FORMAT = {
     'orient': tf.io.FixedLenFeature([], tf.int64),
 }
 
-def count_data_items(filenames):
-    # the number of data items is written in the name of the .tfrec files, 
-    # i.e. test10-687.tfrec = 687 data items
-    n = [int(re.compile(r"-([0-9]*)\.").search(filename).group(1)) for filename in filenames]
-    return np.sum(n)
-
 class Reader():
     def __init__(
         self, image_ch, reduce_fun, load_fn=False,
         aug_albu_fun=None, aug_tf_fun=None
     ):
-        """reads tfrecord"""
+        """reads tfrecord and returns tf.Data object"""
         self.image_ch = image_ch
         self.reduce_fun = reduce_fun
         self.load_fn = load_fn
@@ -46,17 +41,21 @@ class Reader():
         h = data_idx[1] - data_idx[0]
         w = data_idx[3] - data_idx[2]
         
+        # return shape information (lost during serialization)
         image = tf.reshape(image, [h, w, self.image_ch])
         label = tf.reshape(label, [h, w, 1])
 
         # normalize so max value is 1.0
         image = tf.math.divide(image, tf.math.reduce_max(image))
 
+        # apply aug from albumentations if chosen
         if self.aug_albu_fun:
             image, label = self.aug_albu_fun(image, label, h, w, self.image_ch)
 
+        # reduce image resolution to target_res
         image, label = self.reduce_fun(image, label)
 
+        # apply aug from tf ops if chosen
         if self.aug_tf_fun:
             image, label = self.aug_tf_fun(image, label)
 
@@ -76,7 +75,6 @@ class DataLoader():
     def __init__(
         self, cfg, train_reduce, val_reduce,
         aug_albu_fun, aug_tf_fun,
-        # load_fn, ordered, shuffle
     ):
         self.cfg = cfg
         self.image_ch = len(cfg.SAR_CH)
@@ -84,15 +82,31 @@ class DataLoader():
         self.val_reduce = val_reduce
         self.aug_albu_fun = aug_albu_fun
         self.aug_tf_fun = aug_tf_fun
-        self.train_fns = []
-        self.val_fns = []
+        self.train_fns, self.train_steps = get_filenames(
+            cfg, cfg.TRAIN_SPLITS, cfg.TRAIN_PATH)
+        self.val_fns, self.val_steps = get_filenames(
+            cfg, cfg.VAL_SPLITS, cfg.VAL_PATH)
 
-    def preview_train_ds(self):
-        """load some images and view augmented results"""
-        pass
-            
+    def preview_train_ds(self, n_show):
+        """loads train_ds and show n_show images to view augmented results"""
+        prev_reader = Reader(
+            self.image_ch, self.train_reduce, self.aug_albu_fun, self.aug_tf_fun,
+            load_fn=True)
+        options = tf.data.Options()  # reads data ordered to show consistent examples
+        ds = tf.data.TFRecordDataset(self.train_fns, num_parallel_reads=AUTOTUNE) \
+            .with_options(options) \
+            .map(prev_reader.read, num_parallel_calls=AUTOTUNE)
+        
+        for img, label, fn in ds.take(n_show):
+            f,[ax1,ax2] = plt.subplots(1,2,figsize=(6,3))
+            print(fn.numpy())
+            ax1.imshow(img.numpy()[:,:,0])
+            ax2.imshow(label.numpy()[:,:,0])
+            plt.show()
 
-    def get_train_ds(self, train_fns):
+        return ds
+
+    def get_train_ds(self):
         """
         takes list of .tfrec files, read using TFRecordDataset,
         parse and decode using read_tfrecord func,
@@ -105,7 +119,7 @@ class DataLoader():
 
         options = tf.data.Options()
         options.experimental_deterministic = False
-        ds = tf.data.TFRecordDataset(train_fns, num_parallel_reads=AUTOTUNE) \
+        ds = tf.data.TFRecordDataset(self.train_fns, num_parallel_reads=AUTOTUNE) \
             .with_options(options) \
             .map(train_reader.read, num_parallel_calls=AUTOTUNE) \
             .repeat() \
@@ -114,14 +128,14 @@ class DataLoader():
             .prefetch(AUTOTUNE)
         return ds
 
-    def get_val_ds(self, val_fns):
+    def get_val_ds(self):
         """
         only variation is reduce function (will be pad_resize anyway)            
         """
         val_reader = Reader(self.image_ch, self.val_reduce)
         options = tf.data.Options()
         options.experimental_deterministic = False
-        ds = tf.data.TFRecordDataset(val_fns, num_parallel_reads=AUTOTUNE) \
+        ds = tf.data.TFRecordDataset(self.val_fns, num_parallel_reads=AUTOTUNE) \
             .with_options(options) \
             .map(val_reader.read, num_parallel_calls=AUTOTUNE) \
             .batch(self.cfg.BATCH_SIZE) \
@@ -137,6 +151,15 @@ class DataLoader():
         val_ds = self.get_val_ds(val_fns)
         return train_ds, train_steps, val_ds, val_steps
 
+
+
+
+
+def count_data_items(filenames):
+    # the number of data items is written in the name of the .tfrec files, 
+    # i.e. test10-687.tfrec = 687 data items
+    n = [int(re.compile(r"-([0-9]*)\.").search(filename).group(1)) for filename in filenames]
+    return np.sum(n)
 
 def get_filenames(cfg, splits, ds_path, off_ds_path='', verbose=False):
         """
