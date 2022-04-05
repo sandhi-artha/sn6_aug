@@ -2,10 +2,6 @@ import math
 import tensorflow as tf
 
 tr_cfg = {
-    # log cfg
-    'RUN'           : 1,            # REMEMBER TO INCREMENT!!
-    'COMMENTS'      : 'gpu experiments',
-    
     # dataset cfg
     'IMAGE_RS'      : 320,          # target resolution
     'TRAIN_PATH'    : '../../image_folder/sn6-crop',    # kaggle ds name
@@ -30,7 +26,7 @@ tr_cfg = {
     'IS_CV'         : 0,            # cross validation
     'IS_3_FOLD'     : 0,            # do same training 3x to get an average value
     'IS_CB_ES'      : 0,            # early stopping
-    'IS_CB_LRS'     : 0,            # learning rate scheduler, if false uses lr_ramp
+    'IS_CB_LRS'     : 1,            # learning rate scheduler, if false uses lr_ramp
     
     # reduce method: 'resize', 'pad_resize', 'random_crop', 'random_crop_resize'
     'REDUCE_RES'    : 'pad_resize',
@@ -46,6 +42,7 @@ tr_cfg = {
     'IS_SHEAR_Y'    : 0,
 
     # aug magnitude
+    'ROT_REFLECT'   : 0,
     'ROT_RANGE'     : [-10, 10],
     'SHEAR_RANGE'   : [-10, 10],
 
@@ -61,11 +58,6 @@ tr_cfg = {
     'OFF_DS'        : '',   # 'elee', 'frost', 'gmap' NOT ADOPTED YET
     'OFF_AUG_PATH'  : '',
 }
-
-
-# inferred config
-tr_cfg['BATCH_SIZE'] = 4
-tr_cfg['SHUFFLE_BUFFER'] = 50
 
 
 ev_cfg = {
@@ -96,11 +88,3 @@ def lrfn(epoch):
             lr = tf.math.maximum(LR_MIN, lr)
             
     return lr
-
-"""
-%cd sn6_aug
-
-import json
-with open('dg_cfg.json', 'w') as fp:
-    json.dump(dg_cfg, fp)
-"""
