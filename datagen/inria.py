@@ -9,8 +9,6 @@ import numpy as np
 from PIL import Image
 import tensorflow as tf
 
-
-from solaris.raster_tile import RasterTiler
 from lib.viz import show_stats, show_hist
 
 cfg = {
@@ -38,42 +36,22 @@ def get_city_fps(base_dir, city_list, n_tile):
             fps.append(city_fp)
     return fps
 
-def tile_city(out_dir, tile_size, fps):
-    for fp in fps:
-        # create tiler object
-        raster_tiler = RasterTiler(
-            dest_dir=out_dir,
-            src_tile_size=tile_size,
-            verbose=0,
-        )
+def tile_image(out_dir, fp):
+    w = 1000
+    h = 1000
+    if not os.path.isdir(out_dir):
+        os.makedirs(out_dir)
 
-        # tile image raster
-        raster_tiler.dest_dir = f'{out_dir}/images'
-        raster_tiler.tile(fp)
-
-        # tile label raster
-        raster_tiler.dest_dir = f'{out_dir}/gt'
-        raster_tiler.tile(fp.replace('images','gt'))
-
-def clean_empty_tiles(out_dir):
-    # despite equal division, some image tiles have empty data
-    # find empty images from train and val folder, delete along with the label pair
-    tile_fps = glob.glob(f'{out_dir}/*/images/*.tif')
-    print(len(tile_fps))
-
-    empty_fps = []
-    for tile_fp in tile_fps:
-        with Image.open(tile_fp) as img:
-            image = np.array(img)
-            if np.min(image) == np.max(image):
-                empty_fps.append(tile_fp)
-
-    i = 0
-    for empty_fp in empty_fps:
-        os.remove(empty_fp)
-        os.remove(empty_fp.replace('images','gt'))
-        i += 1
-    print(f'removed {i} tile pairs')
+    with Image.open(fp) as img:
+        fn = os.path.basename(fp).split('.')[0]
+        image = np.array(img.convert('L'))
+        # tile into 25
+        count = 0
+        for i in range(5):
+            for j in range(5):
+                im = Image.fromarray(image[i*w:(i+1)*w, j*h:(j+1)*h])
+                im.save(f'{out_dir}/{fn}_{str(count).zfill(2)}.png')
+                count += 1
 
 def get_serialized_image_label(raster_path):
     """returns image and label in tf serial tensor
@@ -205,9 +183,13 @@ if __name__ == '__main__':
     val_fps = get_city_fps(cfg.val_city, cfg.n_val)
 
     print('Tiling..')
-    tile_city(f'{cfg.out_dir}/train', cfg.tile_size, train_fps)
-    tile_city(f'{cfg.out_dir}/val', cfg.tile_size, val_fps)
-    clean_empty_tiles(cfg.out_dir)
+    for train_fp in train_fps:
+        tile_image(f'{cfg.out_dir}/train/images', train_fp)
+        tile_image(f'{cfg.out_dir}/train/gt', train_fp.replace('images','gt'))
+
+    for val_fp in val_fps:
+        tile_image(f'{cfg.out_dir}/val/images', val_fp)
+        tile_image(f'{cfg.out_dir}/val/gt', val_fp.replace('images','gt'))
     
     print('Creating TFRecord..')
     train_tile_fps = glob.glob(f'{cfg.out_dir}/train/images/*.tif')
