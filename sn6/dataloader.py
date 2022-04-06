@@ -88,7 +88,7 @@ class DataLoader():
         self.val_fns, self.val_steps = get_filenames(
             cfg, cfg.VAL_SPLITS, cfg.VAL_PATH)
 
-    def preview_train_ds(self, n_show=4, n_rep=1, min_view=False):
+    def preview_train_ds(self, n_show=4, n_rep=1, n_skip=0, min_view=False):
         """loads train_ds and show n_show images to view augmented results"""
         prev_reader = Reader(
             self.image_ch, self.train_reduce.aug, self.aug_albu_fun, self.aug_tf_fun,
@@ -99,7 +99,7 @@ class DataLoader():
             .map(prev_reader.read, num_parallel_calls=AUTOTUNE) \
             .repeat()
         if min_view:
-            for img, label, fn in ds.take(n_show).repeat(n_rep):
+            for img, label, fn in ds.skip(n_skip).take(n_show).repeat(n_rep):
                 f,[ax1,ax2] = plt.subplots(1,2,figsize=(4,2))
                 ax1.imshow(img.numpy()[:,:,0], cmap='gray')
                 ax1.axis('off')
@@ -108,7 +108,7 @@ class DataLoader():
                 plt.tight_layout()
                 plt.show()
         else:
-            for img, label, fn in ds.take(n_show).repeat(n_rep):
+            for img, label, fn in ds.skip(n_skip).take(n_show).repeat(n_rep):
                 f,[ax1,ax2] = plt.subplots(1,2,figsize=(6,3))
                 print(fn.numpy())
                 ax1.imshow(img.numpy()[:,:,0], cmap='gray')
