@@ -179,8 +179,8 @@ if __name__ == '__main__':
     
     cfg = Dict2Obj(cfg)
 
-    train_fps = get_city_fps(cfg.train_city, cfg.n_train)
-    val_fps = get_city_fps(cfg.val_city, cfg.n_val)
+    train_fps = get_city_fps(cfg.base_dir, cfg.train_city, cfg.n_train)
+    val_fps = get_city_fps(cfg.base_dir, cfg.val_city, cfg.n_val)
 
     print('Tiling..')
     for train_fp in train_fps:
