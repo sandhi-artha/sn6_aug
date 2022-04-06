@@ -182,18 +182,21 @@ if __name__ == '__main__':
     train_fps = get_city_fps(cfg.base_dir, cfg.train_city, cfg.n_train)
     val_fps = get_city_fps(cfg.base_dir, cfg.val_city, cfg.n_val)
 
-    print('Tiling..')
-    for train_fp in train_fps:
+    print('Tiling train..')
+    for i, train_fp in enumerate(train_fps):
+        if i%25: print(f'{i} of {len(train_fps)}')
         tile_image(f'{cfg.out_dir}/train/images', train_fp)
         tile_image(f'{cfg.out_dir}/train/gt', train_fp.replace('images','gt'))
 
-    for val_fp in val_fps:
+    print('Tiling val..')
+    for i, val_fp in enumerate(val_fps):
+        if i%25: print(f'{i} of {len(val_fps)}')
         tile_image(f'{cfg.out_dir}/val/images', val_fp)
         tile_image(f'{cfg.out_dir}/val/gt', val_fp.replace('images','gt'))
     
     print('Creating TFRecord..')
-    train_tile_fps = glob.glob(f'{cfg.out_dir}/train/images/*.tif')
-    val_tile_fps = glob.glob(f'{cfg.out_dir}/val/images/*.tif')
+    train_tile_fps = glob.glob(f'{cfg.out_dir}/train/images/*.png')
+    val_tile_fps = glob.glob(f'{cfg.out_dir}/val/images/*.png')
     print(f'train: {len(train_tile_fps)}, val: {len(val_tile_fps)}')
 
     create_tfrecord(train_tile_fps, cfg.tfrec_size, f'{cfg.out_dir}/train_o0')
