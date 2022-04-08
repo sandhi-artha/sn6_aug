@@ -12,12 +12,12 @@ import tensorflow as tf
 from lib.viz import show_stats, show_hist
 
 cfg = {
-    'base_dir'      : 'D:/Projects/python/dataset/inria',
+    'base_dir'      : '../../image_folder/AerialImageDataset/train',
     'train_city'    : ['austin','chicago'],
-    'n_train'       : 30,
+    'n_train'       : 15,
     'val_city'      : ['vienna'],
     'n_val'         : 10,
-    'out_dir'       : 'test',
+    'out_dir'       : '../../image_folder/processed/inria',
     'tile_size'     : (1000,1000),
     'tfrec_size'    : 50,
 }
@@ -71,7 +71,8 @@ def get_serialized_image_label(raster_path):
 
     # read label
     raster_label = Image.open(raster_path.replace('images','gt'))
-    label = np.array(raster_label.convert('1'))   # to bool
+    label = np.array(raster_label)
+    label = np.where(label==255,1,0)    # to bool [1,0]
     raster_label.close()
 
     # serialize label
@@ -164,6 +165,7 @@ def test_tfrec(out_dir, show=4):
         plt.show()
     
     show_stats(img.numpy())
+    show_stats(label.numpy())
     print(fn.numpy())
 
 
@@ -184,13 +186,13 @@ if __name__ == '__main__':
 
     print('Tiling train..')
     for i, train_fp in enumerate(train_fps):
-        if i%25: print(f'{i} of {len(train_fps)}')
+        if i%5==0: print(f'{i} of {len(train_fps)}')
         tile_image(f'{cfg.out_dir}/train/images', train_fp)
         tile_image(f'{cfg.out_dir}/train/gt', train_fp.replace('images','gt'))
 
     print('Tiling val..')
     for i, val_fp in enumerate(val_fps):
-        if i%25: print(f'{i} of {len(val_fps)}')
+        if i%5==0: print(f'{i} of {len(val_fps)}')
         tile_image(f'{cfg.out_dir}/val/images', val_fp)
         tile_image(f'{cfg.out_dir}/val/gt', val_fp.replace('images','gt'))
     
