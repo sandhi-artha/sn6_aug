@@ -24,4 +24,6 @@ Requires filtered images from MATLAB. In the future, will migrate MATLAB scripts
 
 
 ## Inria
-
+1. Download the train dataset from their [main website](https://project.inria.fr/aerialimagelabeling/). Alternatively, use the dataset hosted [in Kaggle](https://www.kaggle.com/datasets/sagar100rathod/inria-aerial-image-labeling-dataset)
+2. modify `cfg` dictionary in `inria.py` for configuration
+3. run `inria.py`
